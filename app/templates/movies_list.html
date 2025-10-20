@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Фильмы</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #f8f8f8;
+            margin: 0;
+            padding: 2rem;
+        }
+        .movie-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
+        }
+        .movie-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .movie-card img {
+            width: 100%;
+            border-radius: 8px;
+            height: 320px;
+            object-fit: cover;
+        }
+        .movie-card h3 {
+            margin: 10px 0;
+        }
+        .watch-btn {
+            display: inline-block;
+            background: #007bff;
+            color: white;
+            padding: 8px 14px;
+            border-radius: 5px;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        .watch-btn:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Список фильмов</h1>
+    <div class="movie-grid">
+        {% for movie in movies %}
+        <div class="movie-card">
+            {% if movie.poster_path %}
+                <img src="{{ movie.poster_path }}" alt="{{ movie.title }}">
+            {% else %}
+                <img src="/static/default-poster.jpg" alt="No poster">
+            {% endif %}
+            <h3>{{ movie.title }}</h3>
+            <a class="watch-btn" href="/movies/{{ movie.id }}/player">Смотреть</a>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>

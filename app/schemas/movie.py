@@ -14,3 +14,5 @@ class MovieOut(BaseModel):
 
     class Config:
         orm_mode = True
+
+

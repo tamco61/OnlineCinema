@@ -15,3 +15,6 @@ def create_movie(db: Session, movie: MovieCreate, file_path: str):
 
 def get_movie(db: Session, movie_id: int):
     return db.query(Movie).filter(Movie.id == movie_id).first()
+
+def get_all_movies(db):
+    return db.query(Movie).all()

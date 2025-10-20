@@ -9,3 +9,4 @@ alembic
 jinja2
 pydantic-settings
 python-multipart
+requests

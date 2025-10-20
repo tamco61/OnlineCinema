@@ -1,12 +1,33 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-  <title>Movie Player</title>
+    <meta charset="UTF-8">
+    <title>{{ movie_title }}</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 2rem;
+            background-color: #f8f8f8;
+        }
+        h1 {
+            margin-bottom: 1rem;
+        }
+        video {
+            width: 100%;
+            max-width: 800px;
+            height: auto;
+            border-radius: 8px;
+            background: black;
+        }
+    </style>
 </head>
 <body>
-  <video width="720" controls autoplay>
-    <source src="{{ url }}" type="video/mp4">
-    Your browser does not support the video tag.
-  </video>
+    <h1>{{ movie_title }}</h1>
+
+    <!-- Используем FastAPI-прокси вместо прямого presigned URL -->
+    <video controls autoplay>
+        <source src="/movies/{{ movie_id }}/stream" type="video/mp4">
+        Ваш браузер не поддерживает видео.
+    </video>
 </body>
 </html>
