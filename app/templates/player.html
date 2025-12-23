@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ movie_title }}</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 2rem;
+            background-color: #f8f8f8;
+        }
+        h1 {
+            margin-bottom: 1rem;
+        }
+        video {
+            width: 100%;
+            max-width: 800px;
+            height: auto;
+            border-radius: 8px;
+            background: black;
+        }
+    </style>
+</head>
+<body>
+    <h1>{{ movie_title }}</h1>
+
+    <!-- Используем FastAPI-прокси вместо прямого presigned URL -->
+    <video controls autoplay>
+        <source src="/movies/{{ movie_id }}/stream" type="video/mp4">
+        Ваш браузер не поддерживает видео.
+    </video>
+</body>
+</html>
