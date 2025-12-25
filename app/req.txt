@@ -1,0 +1,32 @@
+# Основные
+fastapi==0.104.1
+sqlmodel==0.0.11
+uvicorn[standard]==0.24.0
+
+# Аутентификация и безопасность
+python-multipart==0.0.6
+passlib[bcrypt]==1.7.4
+python-jose[cryptography]==3.3.0
+
+# База данных
+alembic==1.12.1
+psycopg2-binary==2.9.9  # Для PostgreSQL
+# asyncpg==0.29.0  # Для асинхронного PostgreSQL
+
+# Конфигурация и утилиты
+python-dotenv==1.0.0
+pydantic-settings==2.1.0
+
+# Тестирование и разработка
+pytest==7.4.3
+httpx==0.25.1
+black==23.11.0
+isort==5.12.0
+
+# Дополнительные (опционально)
+redis==5.0.1
+# Для кэширования
+celery==5.3.4
+# Для фоновых задач
+python-multipart==0.0.6
+# Для загрузки файлов

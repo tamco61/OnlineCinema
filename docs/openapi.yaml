@@ -1,0 +1,1518 @@
+openapi: 3.0.3
+info:
+  title: "Онлайн-кинотеатр API"
+  description: |
+    Полноценный API для стримингового сервиса с поддержкой фильмов, сериалов, рейтингов и пользовательских закладок.
+    
+    ## Основные возможности:
+    - 📺 Просмотр фильмов и сериалов
+    - ⭐ Система рейтингов и отзывов
+    - 📋 Личные закладки пользователей
+    - 👥 Управление пользователями и подписками
+    - 📊 Аналитика и статистика
+    - 🔧 Управление справочниками (админ)
+    
+    ## Аутентификация:
+    Все защищенные эндпоинты требуют JWT токен, полученный через `/auth/login`.
+    
+    ## Технологии:
+    - FastAPI 0.104+
+    - SQLModel (SQLAlchemy + Pydantic)
+    - JWT аутентификация
+    - PostgreSQL / SQLite
+
+  version: "2.0.0"
+  contact:
+    name: "API Support"
+    email: "support@cinema.example.com"
+  license:
+    name: "MIT"
+    url: "https://opensource.org/licenses/MIT"
+
+servers:
+  - url: "http://localhost:8000"
+    description: "Локальный сервер разработки"
+  - url: "https://api.cinema.example.com"
+    description: "Продакшн сервер"
+
+tags:
+  - name: "Аутентификация"
+    description: "Регистрация, вход и управление токенами"
+  - name: "Пользователи"
+    description: "Управление пользователями и профилями"
+  - name: "Контент"
+    description: "Фильмы, сериалы, эпизоды"
+  - name: "Рейтинги"
+    description: "Рейтинги и отзывы пользователей"
+  - name: "Закладки"
+    description: "Персональные списки просмотра"
+  - name: "Аналитика"
+    description: "Статистика и аналитика (админ)"
+  - name: "Справочники"
+    description: "Управление справочными данными"
+
+paths:
+  /:
+    get:
+      summary: "Корневой эндпоинт"
+      description: "Информация о API и доступные эндпоинты"
+      tags: []
+      responses:
+        "200":
+          description: "Успешный ответ"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InfoResponse"
+
+  /health:
+    get:
+      summary: "Проверка здоровья"
+      description: "Проверка доступности сервиса и подключения к БД"
+      tags: []
+      responses:
+        "200":
+          description: "Сервис работает"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthCheck"
+
+  # ============ Аутентификация ============
+  /auth/register:
+    post:
+      summary: "Регистрация нового пользователя"
+      description: "Создание нового аккаунта пользователя"
+      tags: ["Аутентификация"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCreate"
+      responses:
+        "200":
+          description: "Пользователь успешно создан"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          description: "Ошибка валидации или пользователь уже существует"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: "Некорректные входные данные"
+
+  /auth/login:
+    post:
+      summary: "Вход в систему"
+      description: "Получение JWT токена для аутентификации"
+      tags: ["Аутентификация"]
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: "Успешная аутентификация"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "401":
+          description: "Неверные учетные данные"
+        "422":
+          description: "Некорректные входные данные"
+
+  # ============ Пользователи ============
+  /users/me:
+    get:
+      summary: "Получить информацию о текущем пользователе"
+      description: "Получение профиля текущего аутентифицированного пользователя"
+      tags: ["Пользователи"]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Успешный ответ"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          description: "Неавторизованный доступ"
+        "403":
+          description: "Недостаточно прав"
+
+    put:
+      summary: "Обновить профиль пользователя"
+      description: "Обновление информации текущего пользователя"
+      tags: ["Пользователи"]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+      responses:
+        "200":
+          description: "Профиль успешно обновлен"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          description: "Ошибка валидации"
+        "401":
+          description: "Неавторизованный доступ"
+
+  /users/{user_id}:
+    get:
+      summary: "Получить информацию о пользователе по ID"
+      description: "Получение профиля пользователя (требуются права)"
+      tags: ["Пользователи"]
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: "ID пользователя"
+          schema:
+            type: integer
+            minimum: 1
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Успешный ответ"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          description: "Неавторизованный доступ"
+        "403":
+          description: "Недостаточно прав"
+        "404":
+          description: "Пользователь не найден"
+
+  /users/{user_id}/stats:
+    get:
+      summary: "Статистика просмотров пользователя"
+      description: "Получение статистики просмотров (только для владельца или админа)"
+      tags: ["Пользователи"]
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: "ID пользователя"
+          schema:
+            type: integer
+            minimum: 1
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Успешный ответ"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WatchStats"
+        "401":
+          description: "Неавторизованный доступ"
+        "403":
+          description: "Недостаточно прав"
+        "404":
+          description: "Пользователь не найден"
+
+  # ============ Контент ============
+  /content/:
+    get:
+      summary: "Получить список контента"
+      description: |
+        Получение списка фильмов и сериалов с пагинацией и фильтрацией.
+        
+        **Фильтры:**
+        - По типу контента (фильм/сериал)
+        - По жанру
+        - По году выпуска
+        - По возрастному рейтингу
+        - По минимальному рейтингу IMDB
+      tags: ["Контент"]
+      parameters:
+        - name: content_type_id
+          in: query
+          required: false
+          description: "ID типа контента (из справочника)"
+          schema:
+            type: integer
+        - name: genre_id
+          in: query
+          required: false
+          description: "ID жанра"
+          schema:
+            type: integer
+        - name: min_year
+          in: query
+          required: false
+          description: "Минимальный год выпуска"
+          schema:
+            type: integer
+            minimum: 1900
+        - name: max_year
+          in: query
+          required: false
+          description: "Максимальный год выпуска"
+          schema:
+            type: integer
+            maximum: 2100
+        - name: min_rating
+          in: query
+          required: false
+          description: "Минимальный рейтинг IMDB"
+          schema:
+            type: number
+            minimum: 0
+            maximum: 10
+        - name: limit
+          in: query
+          required: false
+          description: "Количество элементов на странице"
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          required: false
+          description: "Смещение для пагинации"
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Список контента"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ContentResponse"
+        "401":
+          description: "Неавторизованный доступ"
+
+  /content/{content_id}:
+    get:
+      summary: "Получить детальную информацию о контенте"
+      description: "Получение полной информации о фильме или сериале"
+      tags: ["Контент"]
+      parameters:
+        - name: content_id
+          in: path
+          required: true
+          description: "ID контента"
+          schema:
+            type: integer
+            minimum: 1
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Детальная информация о контенте"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentDetailResponse"
+        "401":
+          description: "Неавторизованный доступ"
+        "403":
+          description: "Возрастные ограничения или ограничения подписки"
+        "404":
+          description: "Контент не найден"
+
+  /content/{content_id}/episodes:
+    get:
+      summary: "Получить эпизоды сериала"
+      description: "Получение списка эпизодов для сериала"
+      tags: ["Контент"]
+      parameters:
+        - name: content_id
+          in: path
+          required: true
+          description: "ID контента (сериала)"
+          schema:
+            type: integer
+            minimum: 1
+        - name: season_number
+          in: query
+          required: false
+          description: "Номер сезона (если нужен конкретный сезон)"
+          schema:
+            type: integer
+            minimum: 1
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Список эпизодов, сгруппированных по сезонам"
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  $ref: "#/components/schemas/SeasonWithEpisodes"
+        "401":
+          description: "Неавторизованный доступ"
+        "404":
+          description: "Сериал не найден"
+
+  /content/search/:
+    get:
+      summary: "Поиск контента"
+      description: "Полнотекстовый поиск по названию, описанию и режиссерам"
+      tags: ["Контент"]
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: "Поисковый запрос"
+          schema:
+            type: string
+            minLength: 2
+        - name: content_type_id
+          in: query
+          required: false
+          description: "ID типа контента для фильтрации"
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Результаты поиска"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ContentResponse"
+        "400":
+          description: "Слишком короткий поисковый запрос"
+        "401":
+          description: "Неавторизованный доступ"
+
+  /content/featured/today:
+    get:
+      summary: "Сегодняшние рекомендации"
+      description: "Получить рекомендованный контент на сегодня"
+      tags: ["Контент"]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Список рекомендованного контента"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ContentResponse"
+        "401":
+          description: "Неавторизованный доступ"
+
+  # ============ Рейтинги ============
+  /ratings/{content_id}:
+    post:
+      summary: "Добавить или обновить рейтинг"
+      description: "Добавление или обновление оценки контента"
+      tags: ["Рейтинги"]
+      parameters:
+        - name: content_id
+          in: path
+          required: true
+          description: "ID контента"
+          schema:
+            type: integer
+            minimum: 1
+        - name: rating_value
+          in: query
+          required: true
+          description: "Оценка от 0.5 до 5"
+          schema:
+            type: number
+            minimum: 0.5
+            maximum: 5.0
+            multipleOf: 0.5
+        - name: review
+          in: query
+          required: false
+          description: "Текстовый отзыв"
+          schema:
+            type: string
+            maxLength: 1000
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Рейтинг успешно добавлен/обновлен"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RatingOperationResponse"
+        "400":
+          description: "Неверная оценка"
+        "401":
+          description: "Неавторизованный доступ"
+        "404":
+          description: "Контент не найден"
+
+    get:
+      summary: "Получить рейтинги контента"
+      description: "Получение всех оценок и отзывов для контента"
+      tags: ["Рейтинги"]
+      parameters:
+        - name: content_id
+          in: path
+          required: true
+          description: "ID контента"
+          schema:
+            type: integer
+            minimum: 1
+        - name: include_reviews
+          in: query
+          required: false
+          description: "Включать отзывы в ответ"
+          schema:
+            type: boolean
+            default: false
+        - name: limit
+          in: query
+          required: false
+          description: "Количество элементов на странице"
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          required: false
+          description: "Смещение для пагинации"
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: "Рейтинги контента"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentRatingsResponse"
+        "404":
+          description: "Контент не найден"
+
+  /ratings/user/{user_id}:
+    get:
+      summary: "Получить рейтинги пользователя"
+      description: "Получение всех оценок пользователя (только для владельца)"
+      tags: ["Рейтинги"]
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: "ID пользователя"
+          schema:
+            type: integer
+            minimum: 1
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Рейтинги пользователя"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserRatingsResponse"
+        "401":
+          description: "Неавторизованный доступ"
+        "403":
+          description: "Недостаточно прав"
+        "404":
+          description: "Пользователь не найден"
+
+  # ============ Закладки ============
+  /watchlist/:
+    get:
+      summary: "Получить закладки пользователя"
+      description: "Получение списка контента в закладках текущего пользователя"
+      tags: ["Закладки"]
+      parameters:
+        - name: priority_min
+          in: query
+          required: false
+          description: "Минимальный приоритет"
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 10
+        - name: priority_max
+          in: query
+          required: false
+          description: "Максимальный приоритет"
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 10
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Список контента в закладках"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ContentResponse"
+        "401":
+          description: "Неавторизованный доступ"
+
+  /watchlist/{content_id}:
+    post:
+      summary: "Добавить контент в закладки"
+      description: "Добавление контента в список закладок пользователя"
+      tags: ["Закладки"]
+      parameters:
+        - name: content_id
+          in: path
+          required: true
+          description: "ID контента"
+          schema:
+            type: integer
+            minimum: 1
+        - name: priority
+          in: query
+          required: false
+          description: "Приоритет в списке (0-10)"
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 10
+            default: 0
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Контент добавлен в закладки"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WatchlistOperationResponse"
+        "400":
+          description: "Контент уже в закладках"
+        "401":
+          description: "Неавторизованный доступ"
+        "404":
+          description: "Контент не найден"
+
+    put:
+      summary: "Обновить приоритет в закладках"
+      description: "Изменение приоритета контента в закладках"
+      tags: ["Закладки"]
+      parameters:
+        - name: content_id
+          in: path
+          required: true
+          description: "ID контента"
+          schema:
+            type: integer
+            minimum: 1
+        - name: priority
+          in: query
+          required: true
+          description: "Новый приоритет (0-10)"
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 10
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Приоритет обновлен"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WatchlistPriorityResponse"
+        "401":
+          description: "Неавторизованный доступ"
+        "404":
+          description: "Контент не найден в закладках"
+
+    delete:
+      summary: "Удалить контент из закладок"
+      description: "Удаление контента из списка закладок пользователя"
+      tags: ["Закладки"]
+      parameters:
+        - name: content_id
+          in: path
+          required: true
+          description: "ID контента"
+          schema:
+            type: integer
+            minimum: 1
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Контент удален из закладок"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "401":
+          description: "Неавторизованный доступ"
+        "404":
+          description: "Контент не найден в закладках"
+
+  # ============ Аналитика ============
+  /analytics/popular:
+    get:
+      summary: "Популярный контент"
+      description: "Получение статистики популярного контента (требуются права админа)"
+      tags: ["Аналитика"]
+      parameters:
+        - name: days
+          in: query
+          required: false
+          description: "Количество дней для анализа"
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 365
+            default: 7
+        - name: limit
+          in: query
+          required: false
+          description: "Количество записей в ответе"
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Статистика популярного контента"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PopularContentResponse"
+        "401":
+          description: "Неавторизованный доступ"
+        "403":
+          description: "Недостаточно прав"
+
+  /analytics/user-activity:
+    get:
+      summary: "Статистика активности пользователей"
+      description: "Аналитика активности пользователей за период (требуются права админа)"
+      tags: ["Аналитика"]
+      parameters:
+        - name: start_date
+          in: query
+          required: false
+          description: "Начальная дата (ISO 8601)"
+          schema:
+            type: string
+            format: date-time
+        - name: end_date
+          in: query
+          required: false
+          description: "Конечная дата (ISO 8601)"
+          schema:
+            type: string
+            format: date-time
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Статистика активности"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserActivityResponse"
+        "401":
+          description: "Неавторизованный доступ"
+        "403":
+          description: "Недостаточно прав"
+
+  # ============ Справочники ============
+  /references/all:
+    get:
+      summary: "Получить все справочники"
+      description: "Получение всех справочных данных для инициализации фронтенда"
+      tags: ["Справочники"]
+      responses:
+        "200":
+          description: "Все справочники"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReferenceData"
+
+  /references/content-types:
+    get:
+      summary: "Получить типы контента"
+      description: "Получение списка типов контента (фильм, сериал и т.д.)"
+      tags: ["Справочники"]
+      parameters:
+        - name: active_only
+          in: query
+          required: false
+          description: "Только активные типы"
+          schema:
+            type: boolean
+            default: true
+      responses:
+        "200":
+          description: "Список типов контента"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ContentTypeResponse"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "JWT токен аутентификации"
+
+  schemas:
+    # ============ Основные схемы ============
+    InfoResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Добро пожаловать в API онлайн-кинотеатра!"
+        version:
+          type: string
+          example: "2.0.0"
+        docs:
+          type: string
+          example: "/docs"
+        endpoints:
+          type: array
+          items:
+            type: string
+          example:
+            - "/auth - Аутентификация"
+            - "/users - Пользователи"
+            - "/content - Контент"
+
+    HealthCheck:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy]
+          example: "healthy"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        database:
+          type: string
+          enum: [connected, disconnected]
+          example: "connected"
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Операция выполнена успешно"
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: "Ошибка валидации"
+        details:
+          type: object
+          example:
+            field: "email"
+            message: "Неверный формат email"
+
+    # ============ Пользователи ============
+    UserBase:
+      type: object
+      required: [email, username]
+      properties:
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        username:
+          type: string
+          minLength: 3
+          maxLength: 100
+          example: "cinemalover"
+        full_name:
+          type: string
+          nullable: true
+          example: "Иван Иванов"
+
+    UserCreate:
+      allOf:
+        - $ref: "#/components/schemas/UserBase"
+        - type: object
+          required: [password]
+          properties:
+            password:
+              type: string
+              minLength: 8
+              example: "StrongPass123"
+
+    UserUpdate:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          nullable: true
+        username:
+          type: string
+          minLength: 3
+          maxLength: 100
+          nullable: true
+        full_name:
+          type: string
+          nullable: true
+        subscription_tier_id:
+          type: integer
+          nullable: true
+          example: 3
+
+    UserResponse:
+      allOf:
+        - $ref: "#/components/schemas/UserBase"
+        - type: object
+          required: [id, subscription_tier, is_active, created_at]
+          properties:
+            id:
+              type: integer
+              example: 1
+            subscription_tier:
+              $ref: "#/components/schemas/SubscriptionTierResponse"
+            is_active:
+              type: boolean
+              example: true
+            created_at:
+              type: string
+              format: date-time
+              example: "2024-01-15T10:30:00Z"
+            last_login:
+              type: string
+              format: date-time
+              nullable: true
+              example: "2024-01-15T14:45:00Z"
+
+    # ============ Аутентификация ============
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          example: "cinemalover"
+        password:
+          type: string
+          example: "StrongPass123"
+
+    TokenResponse:
+      type: object
+      required: [access_token, token_type, user_id, username]
+      properties:
+        access_token:
+          type: string
+          example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+        token_type:
+          type: string
+          example: "bearer"
+        user_id:
+          type: integer
+          example: 1
+        username:
+          type: string
+          example: "cinemalover"
+        subscription_tier:
+          $ref: "#/components/schemas/SubscriptionTierResponse"
+
+    # ============ Контент ============
+    ContentBase:
+      type: object
+      required: [title, content_type_id, age_rating_id, release_year]
+      properties:
+        title:
+          type: string
+          maxLength: 255
+          example: "Интерстеллар"
+        description:
+          type: string
+          nullable: true
+          example: "Фантастический эпос о путешествии сквозь червоточину"
+        content_type_id:
+          type: integer
+          example: 1
+        age_rating_id:
+          type: integer
+          example: 3
+        release_year:
+          type: integer
+          minimum: 1900
+          maximum: 2100
+          example: 2014
+        duration_minutes:
+          type: integer
+          minimum: 0
+          example: 169
+        director:
+          type: string
+          nullable: true
+          example: "Кристофер Нолан"
+        imdb_rating:
+          type: number
+          minimum: 0
+          maximum: 10
+          nullable: true
+          example: 8.6
+
+    ContentCreate:
+      allOf:
+        - $ref: "#/components/schemas/ContentBase"
+        - type: object
+          properties:
+            poster_url:
+              type: string
+              format: uri
+              nullable: true
+              example: "https://example.com/poster.jpg"
+            trailer_url:
+              type: string
+              format: uri
+              nullable: true
+              example: "https://youtube.com/watch?v=..."
+            is_featured:
+              type: boolean
+              default: false
+
+    ContentResponse:
+      allOf:
+        - $ref: "#/components/schemas/ContentBase"
+        - type: object
+          required: [id, is_featured, available_from]
+          properties:
+            id:
+              type: integer
+              example: 1
+            poster_url:
+              type: string
+              format: uri
+              nullable: true
+            trailer_url:
+              type: string
+              format: uri
+              nullable: true
+            is_featured:
+              type: boolean
+              example: true
+            available_from:
+              type: string
+              format: date-time
+              example: "2024-01-15T10:30:00Z"
+            content_type:
+              $ref: "#/components/schemas/ContentTypeResponse"
+            age_rating:
+              $ref: "#/components/schemas/AgeRatingResponse"
+
+    ContentDetailResponse:
+      allOf:
+        - $ref: "#/components/schemas/ContentResponse"
+        - type: object
+          properties:
+            genres:
+              type: array
+              items:
+                $ref: "#/components/schemas/GenreResponse"
+            actors:
+              type: array
+              items:
+                $ref: "#/components/schemas/ActorResponse"
+            seasons:
+              type: array
+              items:
+                $ref: "#/components/schemas/SeasonResponse"
+            ratings_summary:
+              $ref: "#/components/schemas/RatingsSummary"
+
+    # ============ Жанры и актеры ============
+    GenreResponse:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Научная фантастика"
+        description:
+          type: string
+          nullable: true
+          example: "Фантастика, основанная на научных концепциях"
+
+    ActorResponse:
+      type: object
+      required: [id, full_name]
+      properties:
+        id:
+          type: integer
+          example: 1
+        full_name:
+          type: string
+          example: "Мэттью Макконахи"
+        birth_date:
+          type: string
+          format: date
+          nullable: true
+          example: "1969-11-04"
+        biography:
+          type: string
+          nullable: true
+        photo_url:
+          type: string
+          format: uri
+          nullable: true
+
+    # ============ Сезоны и эпизоды ============
+    SeasonResponse:
+      type: object
+      required: [id, season_number]
+      properties:
+        id:
+          type: integer
+          example: 1
+        season_number:
+          type: integer
+          minimum: 1
+          example: 1
+        title:
+          type: string
+          nullable: true
+          example: "Первый сезон"
+        release_year:
+          type: integer
+          nullable: true
+          example: 2023
+
+    SeasonWithEpisodes:
+      type: object
+      properties:
+        season_info:
+          $ref: "#/components/schemas/SeasonResponse"
+        episodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/EpisodeResponse"
+
+    EpisodeResponse:
+      type: object
+      required: [id, episode_number, title, duration_minutes, video_url]
+      properties:
+        id:
+          type: integer
+          example: 1
+        episode_number:
+          type: integer
+          minimum: 1
+          example: 5
+        title:
+          type: string
+          example: "Поворотный момент"
+        description:
+          type: string
+          nullable: true
+        duration_minutes:
+          type: integer
+          minimum: 0
+          example: 47
+        video_url:
+          type: string
+          format: uri
+          example: "https://cdn.cinema.com/episodes/s01e05.mp4"
+        thumbnail_url:
+          type: string
+          format: uri
+          nullable: true
+        release_date:
+          type: string
+          format: date
+          nullable: true
+          example: "2023-11-15"
+        video_quality:
+          $ref: "#/components/schemas/VideoQualityResponse"
+
+    # ============ Рейтинги ============
+    RatingOperationResponse:
+      type: object
+      properties:
+        rating:
+          $ref: "#/components/schemas/RatingResponse"
+        average_rating:
+          type: number
+          example: 4.5
+        total_ratings:
+          type: integer
+          example: 125
+
+    RatingResponse:
+      type: object
+      required: [id, user_id, content_id, rating_value, created_at]
+      properties:
+        id:
+          type: integer
+          example: 1
+        user_id:
+          type: integer
+          example: 1
+        content_id:
+          type: integer
+          example: 1
+        rating_value:
+          type: number
+          minimum: 0.5
+          maximum: 5.0
+          multipleOf: 0.5
+          example: 4.5
+        review:
+          type: string
+          nullable: true
+          example: "Отличный фильм, рекомендую!"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    RatingsSummary:
+      type: object
+      properties:
+        total_ratings:
+          type: integer
+          example: 125
+        average_rating:
+          type: number
+          example: 4.5
+        min_rating:
+          type: number
+          example: 1.0
+        max_rating:
+          type: number
+          example: 5.0
+
+    ContentRatingsResponse:
+      type: object
+      properties:
+        content_id:
+          type: integer
+          example: 1
+        content_title:
+          type: string
+          example: "Интерстеллар"
+        statistics:
+          $ref: "#/components/schemas/RatingsSummary"
+        ratings:
+          type: array
+          items:
+            $ref: "#/components/schemas/RatingResponse"
+
+    UserRatingsResponse:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          example: 1
+        total_ratings:
+          type: integer
+          example: 15
+        ratings:
+          type: array
+          items:
+            $ref: "#/components/schemas/RatingResponse"
+
+    # ============ Закладки ============
+    WatchlistOperationResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Добавлено в закладки"
+        watchlist_item:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            user_id:
+              type: integer
+              example: 1
+            content_id:
+              type: integer
+              example: 1
+            priority:
+              type: integer
+              example: 3
+
+    WatchlistPriorityResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Приоритет обновлен"
+        priority:
+          type: integer
+          example: 5
+
+    # ============ Статистика ============
+    WatchStats:
+      type: object
+      properties:
+        total_watch_time_minutes:
+          type: integer
+          example: 1560
+        movies_watched:
+          type: integer
+          example: 25
+        series_watched:
+          type: integer
+          example: 8
+        favorite_genre:
+          type: string
+          nullable: true
+          example: "Научная фантастика"
+        last_watched:
+          type: string
+          format: date-time
+          nullable: true
+
+    PopularContentResponse:
+      type: object
+      properties:
+        period_days:
+          type: integer
+          example: 7
+        since_date:
+          type: string
+          format: date-time
+        popular_content:
+          type: array
+          items:
+            type: object
+            properties:
+              content:
+                $ref: "#/components/schemas/ContentResponse"
+              views:
+                type: integer
+                example: 1500
+
+    UserActivityResponse:
+      type: object
+      properties:
+        period:
+          type: object
+          properties:
+            start:
+              type: string
+              format: date-time
+            end:
+              type: string
+              format: date-time
+        new_users:
+          type: integer
+          example: 150
+        active_users:
+          type: integer
+          example: 1250
+        total_watch_hours:
+          type: number
+          example: 4567.5
+        avg_watch_time_per_user:
+          type: number
+          example: 3.65
+
+    # ============ Справочники ============
+    ReferenceData:
+      type: object
+      properties:
+        content_types:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContentTypeResponse"
+        age_ratings:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgeRatingResponse"
+        subscription_tiers:
+          type: array
+          items:
+            $ref: "#/components/schemas/SubscriptionTierResponse"
+        video_qualities:
+          type: array
+          items:
+            $ref: "#/components/schemas/VideoQualityResponse"
+
+    ContentTypeResponse:
+      type: object
+      required: [id, code, name]
+      properties:
+        id:
+          type: integer
+          example: 1
+        code:
+          type: string
+          example: "movie"
+        name:
+          type: string
+          example: "Фильм"
+        description:
+          type: string
+          nullable: true
+        icon_url:
+          type: string
+          format: uri
+          nullable: true
+        sort_order:
+          type: integer
+          example: 1
+
+    AgeRatingResponse:
+      type: object
+      required: [id, code, name]
+      properties:
+        id:
+          type: integer
+          example: 3
+        code:
+          type: string
+          example: "PG-13"
+        name:
+          type: string
+          example: "С 13 лет"
+        min_age:
+          type: integer
+          nullable: true
+          example: 13
+        description:
+          type: string
+          nullable: true
+        icon_url:
+          type: string
+          format: uri
+          nullable: true
+
+    SubscriptionTierResponse:
+      type: object
+      required: [id, code, name, max_simultaneous_streams, max_video_quality]
+      properties:
+        id:
+          type: integer
+          example: 3
+        code:
+          type: string
+          example: "premium"
+        name:
+          type: string
+          example: "Премиум"
+        price_monthly:
+          type: number
+          nullable: true
+          example: 599
+        price_yearly:
+          type: number
+          nullable: true
+          example: 5990
+        max_simultaneous_streams:
+          type: integer
+          example: 4
+        max_video_quality:
+          type: string
+          example: "4K"
+        description:
+          type: string
+          nullable: true
+        features:
+          type: array
+          items:
+            $ref: "#/components/schemas/SubscriptionFeatureResponse"
+
+    SubscriptionFeatureResponse:
+      type: object
+      required: [id, feature, is_included]
+      properties:
+        id:
+          type: integer
+          example: 1
+        feature:
+          type: string
+          example: "Без рекламы"
+        is_included:
+          type: boolean
+          example: true
+
+    VideoQualityResponse:
+      type: object
+      required: [id, code, name, width, height]
+      properties:
+        id:
+          type: integer
+          example: 3
+        code:
+          type: string
+          example: "fullhd"
+        name:
+          type: string
+          example: "Full HD"
+        width:
+          type: integer
+          example: 1920
+        height:
+          type: integer
+          example: 1080
+        bitrate:
+          type: integer
+          nullable: true
+          example: 5000
