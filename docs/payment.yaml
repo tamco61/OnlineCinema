@@ -1,0 +1,464 @@
+openapi: 3.1.0
+info:
+  title: Payment Service
+  description: Payment processing service for online cinema platform with YooMoney
+    integration
+  version: 1.0.0
+paths:
+  /api/v1/payments/create-checkout-session:
+    post:
+      tags:
+      - Payments
+      summary: Create Checkout Session
+      description: "Create checkout session for subscription payment\n\n**Idempotency:**\n\
+        - Use `X-Idempotency-Key` header or `idempotency_key` field\n- Prevents duplicate\
+        \ payments if request is retried\n- Cached for 24 hours\n\n**Request:**\n\
+        ```json\n{\n    \"plan_id\": \"premium\",\n    \"user_id\": \"00000000-0000-0000-0000-000000000001\"\
+        ,\n    \"idempotency_key\": \"optional-unique-key\"\n}\n```\n\n**Response:**\n\
+        ```json\n{\n    \"payment_id\": \"uuid\",\n    \"checkout_url\": \"https://yookassa.ru/checkout/...\"\
+        ,\n    \"amount\": 599.00,\n    \"currency\": \"RUB\",\n    \"plan_id\": \"\
+        premium\"\n}\n```\n\n**Example:**\n```bash\ncurl -X POST http://localhost:8007/api/v1/payments/create-checkout-session\
+        \ \\\n  -H \"Content-Type: application/json\" \\\n  -H \"X-Idempotency-Key:\
+        \ unique-key-123\" \\\n  -d '{\n    \"plan_id\": \"premium\",\n    \"user_id\"\
+        : \"00000000-0000-0000-0000-000000000001\"\n  }'\n```"
+      operationId: create_checkout_session_api_v1_payments_create_checkout_session_post
+      parameters:
+      - name: X-Idempotency-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Idempotency-Key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCheckoutSessionRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutSessionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/payments/webhook:
+    post:
+      tags:
+      - Payments
+      summary: Handle Webhook
+      description: "YooMoney webhook handler\n\n**Supported Events:**\n- `payment.succeeded`\
+        \ - Payment completed successfully\n- `payment.canceled` - Payment cancelled\
+        \ by user or timeout\n- `refund.succeeded` - Refund processed\n\n**Webhook\
+        \ Configuration:**\nSet webhook URL in YooMoney dashboard:\n```\nhttps://your-domain.com/api/v1/payments/webhook\n\
+        ```\n\n**Security:**\n- Webhook signature verification using HMAC-SHA256\n\
+        - Set `YOOMONEY_WEBHOOK_SECRET` in environment\n\n**Example Webhook Payload:**\n\
+        ```json\n{\n    \"type\": \"notification\",\n    \"event\": \"payment.succeeded\"\
+        ,\n    \"object\": {\n        \"id\": \"2d8b8b7a-000f-5000-9000-1b7e3f9e0e9f\"\
+        ,\n        \"status\": \"succeeded\",\n        \"paid\": true,\n        \"\
+        amount\": {\n            \"value\": \"599.00\",\n            \"currency\"\
+        : \"RUB\"\n        },\n        \"payment_metadata\": {\n            \"payment_id\"\
+        : \"uuid\"\n        }\n    }\n}\n```\n\n**Testing:**\n```bash\ncurl -X POST\
+        \ http://localhost:8007/api/v1/payments/webhook \\\n  -H \"Content-Type: application/json\"\
+        \ \\\n  -H \"X-YooKassa-Signature: signature\" \\\n  -d '{\n    \"type\":\
+        \ \"notification\",\n    \"event\": \"payment.succeeded\",\n    \"object\"\
+        : {\n        \"id\": \"provider-payment-id\",\n        \"status\": \"succeeded\"\
+        \n    }\n  }'\n```"
+      operationId: handle_webhook_api_v1_payments_webhook_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookResponse'
+  /api/v1/payments/history:
+    get:
+      tags:
+      - Payments
+      summary: Get Payment History
+      description: "Get payment history for user\n\n**Query Parameters:**\n- `user_id`\
+        \ - User UUID (required)\n- `page` - Page number (default: 1)\n- `page_size`\
+        \ - Items per page (default: 20, max: 100)\n\n**Response:**\n```json\n{\n\
+        \    \"payments\": [\n        {\n            \"id\": \"uuid\",\n         \
+        \   \"user_id\": \"uuid\",\n            \"amount\": 599.00,\n            \"\
+        currency\": \"RUB\",\n            \"status\": \"succeeded\",\n           \
+        \ \"provider\": \"yoomoney\",\n            \"plan_id\": \"premium\",\n   \
+        \         \"created_at\": \"2024-11-16T10:00:00Z\"\n        }\n    ],\n  \
+        \  \"total\": 10,\n    \"page\": 1,\n    \"page_size\": 20\n}\n```\n\n**Example:**\n\
+        ```bash\ncurl \"http://localhost:8007/api/v1/payments/history?user_id={uuid}&page=1&page_size=20\"\
+        \n```"
+      operationId: get_payment_history_api_v1_payments_history_get
+      parameters:
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: User UUID
+          title: User Id
+        description: User UUID
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          description: Page number
+          default: 1
+          title: Page
+        description: Page number
+      - name: page_size
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          description: Items per page
+          default: 20
+          title: Page Size
+        description: Items per page
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentHistoryResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/payments/{payment_id}:
+    get:
+      tags:
+      - Payments
+      summary: Get Payment
+      description: 'Get payment details by ID
+
+
+        **Example:**
+
+        ```bash
+
+        curl "http://localhost:8007/api/v1/payments/{payment_id}"
+
+        ```'
+      operationId: get_payment_api_v1_payments__payment_id__get
+      parameters:
+      - name: payment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Payment Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /:
+    get:
+      summary: Root
+      description: Root endpoint
+      operationId: root__get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /health:
+    get:
+      summary: Health Check
+      description: Health check endpoint
+      operationId: health_check_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /plans:
+    get:
+      summary: Get Plans
+      description: Get available subscription plans
+      operationId: get_plans_plans_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+components:
+  schemas:
+    CheckoutSessionResponse:
+      properties:
+        payment_id:
+          type: string
+          format: uuid4
+          title: Payment Id
+        checkout_url:
+          type: string
+          title: Checkout Url
+        amount:
+          type: number
+          title: Amount
+        currency:
+          type: string
+          title: Currency
+        plan_id:
+          type: string
+          title: Plan Id
+        expires_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Expires At
+      type: object
+      required:
+      - payment_id
+      - checkout_url
+      - amount
+      - currency
+      - plan_id
+      title: CheckoutSessionResponse
+      description: Response with checkout session details
+      example:
+        amount: 599.0
+        checkout_url: https://yoomoney.ru/checkout/...
+        currency: RUB
+        expires_at: '2024-11-16T12:00:00Z'
+        payment_id: 00000000-0000-0000-0000-000000000001
+        plan_id: premium
+    CreateCheckoutSessionRequest:
+      properties:
+        plan_id:
+          type: string
+          title: Plan Id
+          description: Subscription plan ID (basic, premium, family)
+        user_id:
+          type: string
+          format: uuid4
+          title: User Id
+          description: User UUID
+        idempotency_key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Idempotency Key
+          description: Idempotency key for duplicate prevention
+      type: object
+      required:
+      - plan_id
+      - user_id
+      title: CreateCheckoutSessionRequest
+      description: Request to create checkout session
+      example:
+        idempotency_key: unique-key-123
+        plan_id: premium
+        user_id: 00000000-0000-0000-0000-000000000001
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    PaymentHistoryResponse:
+      properties:
+        payments:
+          items:
+            $ref: '#/components/schemas/PaymentResponse'
+          type: array
+          title: Payments
+        total:
+          type: integer
+          title: Total
+        page:
+          type: integer
+          title: Page
+        page_size:
+          type: integer
+          title: Page Size
+      type: object
+      required:
+      - payments
+      - total
+      - page
+      - page_size
+      title: PaymentHistoryResponse
+      description: Payment history response
+      example:
+        page: 1
+        page_size: 20
+        payments: []
+        total: 10
+    PaymentProviderEnum:
+      type: string
+      enum:
+      - yoomoney
+      - stripe
+      - paypal
+      title: PaymentProviderEnum
+      description: Payment provider enum
+    PaymentResponse:
+      properties:
+        id:
+          type: string
+          format: uuid4
+          title: Id
+        user_id:
+          type: string
+          format: uuid4
+          title: User Id
+        amount:
+          type: number
+          title: Amount
+        currency:
+          type: string
+          title: Currency
+        status:
+          $ref: '#/components/schemas/PaymentStatusEnum'
+        provider:
+          $ref: '#/components/schemas/PaymentProviderEnum'
+        provider_payment_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Provider Payment Id
+        plan_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Plan Id
+        subscription_duration_days:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Subscription Duration Days
+        checkout_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Checkout Url
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        completed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Completed At
+      type: object
+      required:
+      - id
+      - user_id
+      - amount
+      - currency
+      - status
+      - provider
+      - created_at
+      - updated_at
+      title: PaymentResponse
+      description: Payment response
+      example:
+        amount: 599.0
+        checkout_url: https://yoomoney.ru/checkout/...
+        completed_at: '2024-11-16T10:05:00Z'
+        created_at: '2024-11-16T10:00:00Z'
+        currency: RUB
+        id: 00000000-0000-0000-0000-000000000001
+        plan_id: premium
+        provider: yoomoney
+        provider_payment_id: 2d8b8b7a-000f-5000-9000-1b7e3f9e0e9f
+        status: succeeded
+        subscription_duration_days: 30
+        updated_at: '2024-11-16T10:05:00Z'
+        user_id: 00000000-0000-0000-0000-000000000002
+    PaymentStatusEnum:
+      type: string
+      enum:
+      - pending
+      - processing
+      - succeeded
+      - failed
+      - cancelled
+      - refunded
+      title: PaymentStatusEnum
+      description: Payment status enum
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    WebhookResponse:
+      properties:
+        success:
+          type: boolean
+          title: Success
+        message:
+          type: string
+          title: Message
+        payment_id:
+          anyOf:
+          - type: string
+            format: uuid4
+          - type: 'null'
+          title: Payment Id
+      type: object
+      required:
+      - success
+      - message
+      title: WebhookResponse
+      description: Webhook processing response
+      example:
+        message: Payment processed successfully
+        payment_id: 00000000-0000-0000-0000-000000000001
+        success: true

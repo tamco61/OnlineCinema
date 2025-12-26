@@ -1,0 +1,634 @@
+openapi: 3.1.0
+info:
+  title: catalog-service
+  description: Movie catalog service with Kafka events
+  version: 1.0.0
+paths:
+  /health:
+    get:
+      summary: Health
+      description: Health check.
+      operationId: health_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /api/v1/movies:
+    get:
+      tags:
+      - Movies
+      - Movies - Public
+      summary: Get Movies
+      description: Get published movies list (public).
+      operationId: get_movies_api_v1_movies_get
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+          title: Page
+      - name: page_size
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Page Size
+      - name: search
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Search
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - Movies
+      - Movies - Admin
+      summary: Create Movie
+      description: Create movie (admin) - publishes Kafka event.
+      operationId: create_movie_api_v1_movies_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MovieCreate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/movies/{movie_id}:
+    get:
+      tags:
+      - Movies
+      - Movies - Public
+      summary: Get Movie
+      description: Get movie details (public - uses cache).
+      operationId: get_movie_api_v1_movies__movie_id__get
+      parameters:
+      - name: movie_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Movie Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieDetailResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - Movies
+      - Movies - Admin
+      summary: Update Movie
+      description: Update movie (admin) - publishes Kafka event, invalidates cache.
+      operationId: update_movie_api_v1_movies__movie_id__patch
+      parameters:
+      - name: movie_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Movie Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MovieUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/movies/{movie_id}/publish:
+    post:
+      tags:
+      - Movies
+      - Movies - Admin
+      summary: Publish Movie
+      description: Publish movie (admin) - publishes Kafka event, invalidates cache.
+      operationId: publish_movie_api_v1_movies__movie_id__publish_post
+      parameters:
+      - name: movie_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Movie Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    GenreResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        name:
+          type: string
+          title: Name
+        slug:
+          type: string
+          title: Slug
+      type: object
+      required:
+      - id
+      - name
+      - slug
+      title: GenreResponse
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    MovieCreate:
+      properties:
+        title:
+          type: string
+          maxLength: 500
+          title: Title
+        original_title:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Original Title
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        year:
+          type: integer
+          maximum: 2100.0
+          minimum: 1900.0
+          title: Year
+        duration:
+          anyOf:
+          - type: integer
+            minimum: 1.0
+          - type: 'null'
+          title: Duration
+          description: Duration in minutes
+        poster_url:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Poster Url
+        trailer_url:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Trailer Url
+        rating:
+          anyOf:
+          - type: number
+            maximum: 10.0
+            minimum: 0.0
+          - type: 'null'
+          title: Rating
+        age_rating:
+          anyOf:
+          - type: string
+            maxLength: 10
+          - type: 'null'
+          title: Age Rating
+        imdb_id:
+          anyOf:
+          - type: string
+            maxLength: 20
+          - type: 'null'
+          title: Imdb Id
+        genre_ids:
+          items:
+            type: string
+            format: uuid
+          type: array
+          title: Genre Ids
+        actor_ids:
+          items:
+            type: string
+            format: uuid
+          type: array
+          title: Actor Ids
+        director_ids:
+          items:
+            type: string
+            format: uuid
+          type: array
+          title: Director Ids
+      type: object
+      required:
+      - title
+      - year
+      title: MovieCreate
+    MovieDetailResponse:
+      properties:
+        title:
+          type: string
+          maxLength: 500
+          title: Title
+        original_title:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Original Title
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        year:
+          type: integer
+          maximum: 2100.0
+          minimum: 1900.0
+          title: Year
+        duration:
+          anyOf:
+          - type: integer
+            minimum: 1.0
+          - type: 'null'
+          title: Duration
+          description: Duration in minutes
+        poster_url:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Poster Url
+        trailer_url:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Trailer Url
+        rating:
+          anyOf:
+          - type: number
+            maximum: 10.0
+            minimum: 0.0
+          - type: 'null'
+          title: Rating
+        age_rating:
+          anyOf:
+          - type: string
+            maxLength: 10
+          - type: 'null'
+          title: Age Rating
+        imdb_id:
+          anyOf:
+          - type: string
+            maxLength: 20
+          - type: 'null'
+          title: Imdb Id
+        id:
+          type: string
+          format: uuid
+          title: Id
+        is_published:
+          type: boolean
+          title: Is Published
+        published_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Published At
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        genres:
+          items:
+            $ref: '#/components/schemas/GenreResponse'
+          type: array
+          title: Genres
+          default: []
+        actors:
+          items:
+            $ref: '#/components/schemas/PersonResponse'
+          type: array
+          title: Actors
+          default: []
+        directors:
+          items:
+            $ref: '#/components/schemas/PersonResponse'
+          type: array
+          title: Directors
+          default: []
+      type: object
+      required:
+      - title
+      - year
+      - id
+      - is_published
+      - published_at
+      - created_at
+      - updated_at
+      title: MovieDetailResponse
+    MovieListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/MovieResponse'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+        page:
+          type: integer
+          title: Page
+        page_size:
+          type: integer
+          title: Page Size
+        pages:
+          type: integer
+          title: Pages
+      type: object
+      required:
+      - items
+      - total
+      - page
+      - page_size
+      - pages
+      title: MovieListResponse
+    MovieResponse:
+      properties:
+        title:
+          type: string
+          maxLength: 500
+          title: Title
+        original_title:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Original Title
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        year:
+          type: integer
+          maximum: 2100.0
+          minimum: 1900.0
+          title: Year
+        duration:
+          anyOf:
+          - type: integer
+            minimum: 1.0
+          - type: 'null'
+          title: Duration
+          description: Duration in minutes
+        poster_url:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Poster Url
+        trailer_url:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Trailer Url
+        rating:
+          anyOf:
+          - type: number
+            maximum: 10.0
+            minimum: 0.0
+          - type: 'null'
+          title: Rating
+        age_rating:
+          anyOf:
+          - type: string
+            maxLength: 10
+          - type: 'null'
+          title: Age Rating
+        imdb_id:
+          anyOf:
+          - type: string
+            maxLength: 20
+          - type: 'null'
+          title: Imdb Id
+        id:
+          type: string
+          format: uuid
+          title: Id
+        is_published:
+          type: boolean
+          title: Is Published
+        published_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Published At
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - title
+      - year
+      - id
+      - is_published
+      - published_at
+      - created_at
+      - updated_at
+      title: MovieResponse
+    MovieUpdate:
+      properties:
+        title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Title
+        original_title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Original Title
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        year:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Year
+        duration:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Duration
+        poster_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Poster Url
+        trailer_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Trailer Url
+        rating:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Rating
+        age_rating:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Age Rating
+        genre_ids:
+          anyOf:
+          - items:
+              type: string
+              format: uuid
+            type: array
+          - type: 'null'
+          title: Genre Ids
+        actor_ids:
+          anyOf:
+          - items:
+              type: string
+              format: uuid
+            type: array
+          - type: 'null'
+          title: Actor Ids
+        director_ids:
+          anyOf:
+          - items:
+              type: string
+              format: uuid
+            type: array
+          - type: 'null'
+          title: Director Ids
+      type: object
+      title: MovieUpdate
+    PersonResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        full_name:
+          type: string
+          title: Full Name
+        photo_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Photo Url
+      type: object
+      required:
+      - id
+      - full_name
+      title: PersonResponse
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError

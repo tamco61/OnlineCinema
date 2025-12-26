@@ -1,0 +1,482 @@
+openapi: 3.1.0
+info:
+  title: Search Service
+  description: Full-text search service for online cinema using Elasticsearch
+  version: 1.0.0
+paths:
+  /api/v1/search:
+    get:
+      tags:
+      - Search
+      summary: Search Movies
+      description: 'Search for movies with full-text search and filters
+
+
+        **Search fields:**
+
+        - Title (boosted 3x)
+
+        - Original title (boosted 2x)
+
+        - Description
+
+        - Actors (boosted 2x)
+
+        - Directors (boosted 2x)
+
+
+        **Filters:**
+
+        - Genres (by slug)
+
+        - Year range
+
+        - Rating range
+
+        - Age rating
+
+
+        **Example:**
+
+        ```
+
+        GET /api/v1/search?query=inception&genres=sci-fi,action&year_from=2010&rating_from=8.0
+
+        ```'
+      operationId: search_movies_api_v1_search_get
+      parameters:
+      - name: query
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Search query
+          title: Query
+        description: Search query
+      - name: genres
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Comma-separated genre slugs (e.g., 'action,drama')
+          title: Genres
+        description: Comma-separated genre slugs (e.g., 'action,drama')
+      - name: year_from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            maximum: 2100
+            minimum: 1900
+          - type: 'null'
+          description: Minimum year
+          title: Year From
+        description: Minimum year
+      - name: year_to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            maximum: 2100
+            minimum: 1900
+          - type: 'null'
+          description: Maximum year
+          title: Year To
+        description: Maximum year
+      - name: rating_from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: number
+            maximum: 10.0
+            minimum: 0.0
+          - type: 'null'
+          description: Minimum rating
+          title: Rating From
+        description: Minimum rating
+      - name: rating_to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: number
+            maximum: 10.0
+            minimum: 0.0
+          - type: 'null'
+          description: Maximum rating
+          title: Rating To
+        description: Maximum rating
+      - name: age_rating
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Comma-separated age ratings (e.g., 'PG,PG-13')
+          title: Age Rating
+        description: Comma-separated age ratings (e.g., 'PG,PG-13')
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          description: Page number
+          default: 1
+          title: Page
+        description: Page number
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          description: Page size
+          default: 20
+          title: Size
+        description: Page size
+      - name: published_only
+        in: query
+        required: false
+        schema:
+          type: boolean
+          description: Show only published movies
+          default: true
+          title: Published Only
+        description: Show only published movies
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/search/suggest:
+    get:
+      tags:
+      - Search
+      summary: Autocomplete Movies
+      description: 'Autocomplete suggestions for movie titles
+
+
+        **Returns:**
+
+        - Top matching movie titles
+
+        - Sorted by relevance and rating
+
+
+        **Example:**
+
+        ```
+
+        GET /api/v1/search/suggest?query=incep&limit=5
+
+        ```'
+      operationId: autocomplete_movies_api_v1_search_suggest_get
+      parameters:
+      - name: query
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 2
+          description: Search query (minimum 2 characters)
+          title: Query
+        description: Search query (minimum 2 characters)
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 20
+          minimum: 1
+          description: Maximum number of suggestions
+          default: 10
+          title: Limit
+        description: Maximum number of suggestions
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuggestResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/search/health:
+    get:
+      tags:
+      - Search
+      summary: Health Check
+      description: 'Health check endpoint
+
+
+        Verifies Elasticsearch connection'
+      operationId: health_check_api_v1_search_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /:
+    get:
+      summary: Root
+      operationId: root__get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /health:
+    get:
+      summary: Health
+      description: Health check endpoint
+      operationId: health_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+components:
+  schemas:
+    DirectorInfo:
+      properties:
+        id:
+          type: string
+          title: Id
+        full_name:
+          type: string
+          title: Full Name
+      type: object
+      required:
+      - id
+      - full_name
+      title: DirectorInfo
+    GenreInfo:
+      properties:
+        id:
+          type: string
+          title: Id
+        name:
+          type: string
+          title: Name
+        slug:
+          type: string
+          title: Slug
+      type: object
+      required:
+      - id
+      - name
+      - slug
+      title: GenreInfo
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    MovieSearchResult:
+      properties:
+        movie_id:
+          type: string
+          title: Movie Id
+        title:
+          type: string
+          title: Title
+        original_title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Original Title
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        year:
+          type: integer
+          title: Year
+        duration:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Duration
+        rating:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Rating
+        age_rating:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Age Rating
+        poster_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Poster Url
+        trailer_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Trailer Url
+        genres:
+          items:
+            $ref: '#/components/schemas/GenreInfo'
+          type: array
+          title: Genres
+          default: []
+        actors:
+          items:
+            $ref: '#/components/schemas/PersonInfo'
+          type: array
+          title: Actors
+          default: []
+        directors:
+          items:
+            $ref: '#/components/schemas/DirectorInfo'
+          type: array
+          title: Directors
+          default: []
+        is_published:
+          type: boolean
+          title: Is Published
+          default: false
+        published_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Published At
+      type: object
+      required:
+      - movie_id
+      - title
+      - year
+      title: MovieSearchResult
+    PersonInfo:
+      properties:
+        id:
+          type: string
+          title: Id
+        full_name:
+          type: string
+          title: Full Name
+        character_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Character Name
+      type: object
+      required:
+      - id
+      - full_name
+      title: PersonInfo
+    SearchResponse:
+      properties:
+        results:
+          items:
+            $ref: '#/components/schemas/MovieSearchResult'
+          type: array
+          title: Results
+        total:
+          type: integer
+          title: Total
+        page:
+          type: integer
+          title: Page
+        size:
+          type: integer
+          title: Size
+        total_pages:
+          type: integer
+          title: Total Pages
+      type: object
+      required:
+      - results
+      - total
+      - page
+      - size
+      - total_pages
+      title: SearchResponse
+    SuggestResponse:
+      properties:
+        suggestions:
+          items:
+            $ref: '#/components/schemas/SuggestionItem'
+          type: array
+          title: Suggestions
+      type: object
+      required:
+      - suggestions
+      title: SuggestResponse
+    SuggestionItem:
+      properties:
+        movie_id:
+          type: string
+          title: Movie Id
+        title:
+          type: string
+          title: Title
+        year:
+          type: integer
+          title: Year
+        poster_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Poster Url
+      type: object
+      required:
+      - movie_id
+      - title
+      - year
+      title: SuggestionItem
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError

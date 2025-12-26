@@ -1,0 +1,309 @@
+openapi: 3.1.0
+info:
+  title: Streaming Service
+  description: Video streaming service with S3/MinIO, signed URLs, and watch progress
+    tracking
+  version: 1.0.0
+paths:
+  /api/v1/stream/{movie_id}:
+    post:
+      tags:
+      - Streaming
+      summary: Start Streaming
+      description: "Start streaming a movie\n\n**Access Control:**\n- Requires valid\
+        \ JWT token\n- Requires active subscription\n\n**Returns:**\n- Signed URL\
+        \ for HLS/DASH manifest\n- URL expires in 1 hour\n\n**Example:**\n```bash\n\
+        curl -X POST http://localhost:8005/api/v1/stream/{movie_id} \\\n  -H \"Authorization:\
+        \ Bearer <token>\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"\
+        manifest_type\": \"hls\"}'\n```"
+      operationId: start_streaming_api_v1_stream__movie_id__post
+      parameters:
+      - name: movie_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Movie Id
+      - name: authorization
+        in: header
+        required: true
+        schema:
+          type: string
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StreamRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StreamResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/stream/{movie_id}/progress:
+    post:
+      tags:
+      - Streaming
+      summary: Update Watch Progress
+      description: "Update watch progress\n\n**Tracking:**\n- Saved to Redis (fast\
+        \ access)\n- Synced to PostgreSQL (persistent storage)\n- Kafka event published\n\
+        \n**Client should call this endpoint periodically (e.g., every 10 seconds)**\n\
+        \n**Example:**\n```bash\ncurl -X POST http://localhost:8005/api/v1/stream/{movie_id}/progress\
+        \ \\\n  -H \"Authorization: Bearer <token>\" \\\n  -H \"Content-Type: application/json\"\
+        \ \\\n  -d '{\"position_seconds\": 120}'\n```"
+      operationId: update_watch_progress_api_v1_stream__movie_id__progress_post
+      parameters:
+      - name: movie_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Movie Id
+      - name: authorization
+        in: header
+        required: true
+        schema:
+          type: string
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProgressUpdateRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgressUpdateResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - Streaming
+      summary: Get Watch Progress
+      description: "Get current watch progress\n\n**Returns:**\n- Current playback\
+        \ position\n- Last watched timestamp\n\n**Example:**\n```bash\ncurl http://localhost:8005/api/v1/stream/{movie_id}/progress\
+        \ \\\n  -H \"Authorization: Bearer <token>\"\n```"
+      operationId: get_watch_progress_api_v1_stream__movie_id__progress_get
+      parameters:
+      - name: movie_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Movie Id
+      - name: authorization
+        in: header
+        required: true
+        schema:
+          type: string
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchProgressResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/stream/{movie_id}/stop:
+    post:
+      tags:
+      - Streaming
+      summary: Stop Streaming
+      description: "Stop streaming session\n\n**Actions:**\n- Updates final watch\
+        \ progress\n- Publishes stream.stop event\n- Ends stream session\n\n**Example:**\n\
+        ```bash\ncurl -X POST http://localhost:8005/api/v1/stream/{movie_id}/stop\
+        \ \\\n  -H \"Authorization: Bearer <token>\" \\\n  -H \"Content-Type: application/json\"\
+        \ \\\n  -d '{\"position_seconds\": 1800}'\n```"
+      operationId: stop_streaming_api_v1_stream__movie_id__stop_post
+      parameters:
+      - name: movie_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Movie Id
+      - name: authorization
+        in: header
+        required: true
+        schema:
+          type: string
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProgressUpdateRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /:
+    get:
+      summary: Root
+      operationId: root__get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /health:
+    get:
+      summary: Health
+      description: Health check endpoint
+      operationId: health_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+components:
+  schemas:
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    ProgressUpdateRequest:
+      properties:
+        position_seconds:
+          type: integer
+          minimum: 0.0
+          title: Position Seconds
+          description: Current playback position in seconds
+      type: object
+      required:
+      - position_seconds
+      title: ProgressUpdateRequest
+      description: Request to update watch progress
+    ProgressUpdateResponse:
+      properties:
+        success:
+          type: boolean
+          title: Success
+        position_seconds:
+          type: integer
+          title: Position Seconds
+        message:
+          type: string
+          title: Message
+          default: Progress updated successfully
+      type: object
+      required:
+      - success
+      - position_seconds
+      title: ProgressUpdateResponse
+      description: Response after updating progress
+    StreamRequest:
+      properties:
+        manifest_type:
+          type: string
+          title: Manifest Type
+          description: 'Manifest type: hls or dash'
+          default: hls
+      type: object
+      title: StreamRequest
+      description: Request to start streaming a movie
+    StreamResponse:
+      properties:
+        manifest_url:
+          type: string
+          title: Manifest Url
+          description: Signed URL for manifest file
+        expires_in:
+          type: integer
+          title: Expires In
+          description: URL expiration in seconds
+        manifest_type:
+          type: string
+          title: Manifest Type
+          description: Manifest type (hls/dash)
+      type: object
+      required:
+      - manifest_url
+      - expires_in
+      - manifest_type
+      title: StreamResponse
+      description: Response with streaming manifest URL
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    WatchProgressResponse:
+      properties:
+        user_id:
+          type: string
+          title: User Id
+        movie_id:
+          type: string
+          title: Movie Id
+        position_seconds:
+          type: integer
+          title: Position Seconds
+        last_watched_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Last Watched At
+      type: object
+      required:
+      - user_id
+      - movie_id
+      - position_seconds
+      title: WatchProgressResponse
+      description: Response with watch progress

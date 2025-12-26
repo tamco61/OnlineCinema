@@ -1,0 +1,476 @@
+openapi: 3.1.0
+info:
+  title: user-service
+  description: User profiles, subscriptions, watch history, and favorites
+  version: 1.0.0
+paths:
+  /health:
+    get:
+      summary: Health
+      description: Health check.
+      operationId: health_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /api/v1/users/me:
+    get:
+      tags:
+      - Users
+      summary: Get My Profile
+      description: 'Get current user profile.
+
+
+        Creates profile automatically if doesn''t exist.'
+      operationId: get_my_profile_api_v1_users_me_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+      security:
+      - HTTPBearer: []
+    patch:
+      tags:
+      - Users
+      summary: Update My Profile
+      description: 'Update current user profile.
+
+
+        Updates only provided fields.'
+      operationId: update_my_profile_api_v1_users_me_patch
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProfileUpdate'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /api/v1/users/me/history:
+    get:
+      tags:
+      - History
+      summary: Get Watch History
+      description: 'Get user watch history.
+
+
+        Returns recently watched content ordered by last watched time.'
+      operationId: get_watch_history_api_v1_users_me_history_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 50
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WatchHistoryResponse'
+                title: Response Get Watch History Api V1 Users Me History Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - History
+      summary: Update Watch Progress
+      description: 'Update watch progress for content.
+
+
+        Creates new history entry if doesn''t exist, updates if exists.'
+      operationId: update_watch_progress_api_v1_users_me_history_post
+      security:
+      - HTTPBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WatchHistoryUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchHistoryResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/users/me/favorites:
+    get:
+      tags:
+      - Favorites
+      summary: Get Favorites
+      description: 'Get user favorites.
+
+
+        Returns user''s favorite/bookmarked content.'
+      operationId: get_favorites_api_v1_users_me_favorites_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          default: 100
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FavoriteResponse'
+                title: Response Get Favorites Api V1 Users Me Favorites Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/users/me/favorites/{content_id}:
+    post:
+      tags:
+      - Favorites
+      summary: Add To Favorites
+      description: 'Add content to favorites.
+
+
+        Returns the created favorite entry.'
+      operationId: add_to_favorites_api_v1_users_me_favorites__content_id__post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: content_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Content Id
+      - name: content_type
+        in: query
+        required: true
+        schema:
+          type: string
+          description: 'Content type: movie, series, etc.'
+          title: Content Type
+        description: 'Content type: movie, series, etc.'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FavoriteResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - Favorites
+      summary: Remove From Favorites
+      description: 'Remove content from favorites.
+
+
+        Returns 204 No Content on success.'
+      operationId: remove_from_favorites_api_v1_users_me_favorites__content_id__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: content_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Content Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    FavoriteResponse:
+      properties:
+        content_id:
+          type: string
+          format: uuid
+          title: Content Id
+        content_type:
+          type: string
+          maxLength: 20
+          title: Content Type
+        id:
+          type: string
+          format: uuid
+          title: Id
+        profile_id:
+          type: string
+          format: uuid
+          title: Profile Id
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - content_id
+      - content_type
+      - id
+      - profile_id
+      - created_at
+      title: FavoriteResponse
+      description: Favorite response schema.
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    UserProfileResponse:
+      properties:
+        nickname:
+          anyOf:
+          - type: string
+            maxLength: 100
+          - type: 'null'
+          title: Nickname
+          description: User nickname
+        avatar_url:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Avatar Url
+          description: Avatar URL
+        language:
+          type: string
+          maxLength: 10
+          title: Language
+          description: ISO 639-1 language code
+          default: en
+        country:
+          anyOf:
+          - type: string
+            maxLength: 2
+          - type: 'null'
+          title: Country
+          description: ISO 3166-1 alpha-2 country code
+        id:
+          type: string
+          format: uuid
+          title: Id
+        user_id:
+          type: string
+          format: uuid
+          title: User Id
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - user_id
+      - created_at
+      - updated_at
+      title: UserProfileResponse
+      description: Schema for user profile response.
+    UserProfileUpdate:
+      properties:
+        nickname:
+          anyOf:
+          - type: string
+            maxLength: 100
+          - type: 'null'
+          title: Nickname
+        avatar_url:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Avatar Url
+        language:
+          anyOf:
+          - type: string
+            maxLength: 10
+          - type: 'null'
+          title: Language
+        country:
+          anyOf:
+          - type: string
+            maxLength: 2
+          - type: 'null'
+          title: Country
+      type: object
+      title: UserProfileUpdate
+      description: Schema for updating user profile.
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    WatchHistoryResponse:
+      properties:
+        content_id:
+          type: string
+          format: uuid
+          title: Content Id
+        content_type:
+          type: string
+          maxLength: 20
+          title: Content Type
+        progress_seconds:
+          type: integer
+          minimum: 0.0
+          title: Progress Seconds
+          default: 0
+        duration_seconds:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Duration Seconds
+        id:
+          type: string
+          format: uuid
+          title: Id
+        profile_id:
+          type: string
+          format: uuid
+          title: Profile Id
+        completed:
+          type: boolean
+          title: Completed
+        last_watched_at:
+          type: string
+          format: date-time
+          title: Last Watched At
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - content_id
+      - content_type
+      - id
+      - profile_id
+      - completed
+      - last_watched_at
+      - created_at
+      - updated_at
+      title: WatchHistoryResponse
+      description: Watch history response schema.
+    WatchHistoryUpdate:
+      properties:
+        content_id:
+          type: string
+          format: uuid
+          title: Content Id
+        content_type:
+          type: string
+          title: Content Type
+        progress_seconds:
+          type: integer
+          minimum: 0.0
+          title: Progress Seconds
+        duration_seconds:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Duration Seconds
+        completed:
+          type: boolean
+          title: Completed
+          default: false
+      type: object
+      required:
+      - content_id
+      - content_type
+      - progress_seconds
+      title: WatchHistoryUpdate
+      description: Schema for updating watch progress.
+  securitySchemes:
+    HTTPBearer:
+      type: http
+      scheme: bearer

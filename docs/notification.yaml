@@ -1,0 +1,246 @@
+openapi: 3.1.0
+info:
+  title: Notification Service
+  description: Notification service for online cinema platform with Email (SendGrid/AWS
+    SES) and Push (FCM) support
+  version: 1.0.0
+paths:
+  /api/v1/notifications/test-email:
+    post:
+      tags:
+      - Notifications
+      summary: Send Test Email
+      description: "Send test email\n\n**Admin endpoint** for testing email provider\
+        \ configuration\n\n**Request:**\n```json\n{\n    \"to_email\": \"user@example.com\"\
+        ,\n    \"to_name\": \"John Doe\",\n    \"subject\": \"Test Email\",\n    \"\
+        body\": \"<h1>Hello!</h1><p>This is a test.</p>\"\n}\n```\n\n**Response:**\n\
+        ```json\n{\n    \"success\": true,\n    \"message\": \"Email sent successfully\"\
+        ,\n    \"message_id\": \"msg-12345\"\n}\n```\n\n**Example:**\n```bash\ncurl\
+        \ -X POST http://localhost:8008/api/v1/notifications/test-email \\\n  -H \"\
+        Content-Type: application/json\" \\\n  -d '{\n    \"to_email\": \"user@example.com\"\
+        ,\n    \"subject\": \"Test\",\n    \"body\": \"<h1>Test Email</h1>\"\n  }'\n\
+        ```"
+      operationId: send_test_email_api_v1_notifications_test_email_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestEmailRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/notifications/test-push:
+    post:
+      tags:
+      - Notifications
+      summary: Send Test Push
+      description: "Send test push notification\n\n**Admin endpoint** for testing\
+        \ push provider configuration\n\n**Request:**\n```json\n{\n    \"device_token\"\
+        : \"fcm-token\",\n    \"title\": \"Test Notification\",\n    \"body\": \"\
+        This is a test\",\n    \"data\": {\"key\": \"value\"}\n}\n```\n\n**Response:**\n\
+        ```json\n{\n    \"success\": true,\n    \"message\": \"Push notification sent\
+        \ successfully\",\n    \"message_id\": \"fcm-12345\"\n}\n```\n\n**Example:**\n\
+        ```bash\ncurl -X POST http://localhost:8008/api/v1/notifications/test-push\
+        \ \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"device_token\"\
+        : \"your-fcm-token\",\n    \"title\": \"Test\",\n    \"body\": \"Test push\"\
+        \n  }'\n```"
+      operationId: send_test_push_api_v1_notifications_test_push_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestPushRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/notifications/providers:
+    get:
+      tags:
+      - Notifications
+      summary: Get Providers
+      description: 'Get configured notification providers
+
+
+        **Returns:** Information about configured email and push providers
+
+
+        **Example:**
+
+        ```bash
+
+        curl http://localhost:8008/api/v1/notifications/providers
+
+        ```'
+      operationId: get_providers_api_v1_notifications_providers_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /:
+    get:
+      summary: Root
+      description: Root endpoint
+      operationId: root__get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /health:
+    get:
+      summary: Health Check
+      description: Health check endpoint
+      operationId: health_check_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+components:
+  schemas:
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    NotificationResponse:
+      properties:
+        success:
+          type: boolean
+          title: Success
+        message:
+          type: string
+          title: Message
+        message_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Message Id
+      type: object
+      required:
+      - success
+      - message
+      title: NotificationResponse
+      description: Generic notification response
+      example:
+        message: Notification sent successfully
+        message_id: msg-12345
+        success: true
+    TestEmailRequest:
+      properties:
+        to_email:
+          type: string
+          format: email
+          title: To Email
+          description: Recipient email address
+        to_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: To Name
+          description: Recipient name
+        subject:
+          type: string
+          title: Subject
+          description: Email subject
+        body:
+          type: string
+          title: Body
+          description: Email body (HTML)
+      type: object
+      required:
+      - to_email
+      - subject
+      - body
+      title: TestEmailRequest
+      description: Request to send test email
+      example:
+        body: <h1>Hello!</h1><p>This is a test email.</p>
+        subject: Test Email
+        to_email: user@example.com
+        to_name: John Doe
+    TestPushRequest:
+      properties:
+        device_token:
+          type: string
+          title: Device Token
+          description: Device FCM token
+        title:
+          type: string
+          title: Title
+          description: Notification title
+        body:
+          type: string
+          title: Body
+          description: Notification body
+        data:
+          anyOf:
+          - type: object
+          - type: 'null'
+          title: Data
+          description: Additional data
+      type: object
+      required:
+      - device_token
+      - title
+      - body
+      title: TestPushRequest
+      description: Request to send test push notification
+      example:
+        body: This is a test push notification
+        data:
+          key: value
+          type: test
+        device_token: fcm-device-token-here
+        title: Test Notification
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
