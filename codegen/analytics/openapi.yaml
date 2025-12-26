@@ -1,0 +1,591 @@
+openapi: 3.1.0
+info:
+  description: Analytics service for online cinema platform. Collects and analyzes
+    viewing events.
+  title: Analytics Service
+  version: 1.0.0
+servers:
+- url: /
+paths:
+  /api/v1/analytics/content/popular:
+    get:
+      description: |-
+        Get most popular movies by views
+
+        **Query ClickHouse:**
+        ```sql
+        SELECT
+            movie_id,
+            sum(start_count) as total_views,
+            sum(unique_viewers) as unique_viewers,
+            round(sum(finish_count) / sum(start_count) * 100, 2) as completion_rate
+        FROM popular_content_mv
+        WHERE event_date >= today() - 7
+        GROUP BY movie_id
+        ORDER BY total_views DESC
+        LIMIT 10
+        ```
+
+        **Example:**
+        ```bash
+        curl "http://localhost:8006/api/v1/analytics/content/popular?days=7&limit=10"
+        ```
+
+        **Response:**
+        ```json
+        {
+          "items": [
+            {
+              "movie_id": "uuid",
+              "total_views": 1500,
+              "unique_viewers": 800,
+              "completion_rate": 75.5
+            }
+          ],
+          "period_days": 7,
+          "total_items": 10
+        }
+        ```
+      operationId: get_popular_content_api_v1_analytics_content_popular_get
+      parameters:
+      - description: Number of days to analyze
+        explode: true
+        in: query
+        name: days
+        required: false
+        schema:
+          default: 7
+          description: Number of days to analyze
+          maximum: 365
+          minimum: 1
+          title: Days
+          type: integer
+        style: form
+      - description: Maximum number of results
+        explode: true
+        in: query
+        name: limit
+        required: false
+        schema:
+          default: 10
+          description: Maximum number of results
+          maximum: 100
+          minimum: 1
+          title: Limit
+          type: integer
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PopularContentResponse"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Popular Content
+      tags:
+      - Analytics
+  /api/v1/analytics/user/{user_id}/stats:
+    get:
+      description: |-
+        Get user viewing statistics
+
+        **Queries ClickHouse:**
+
+        1. **Main stats:**
+        ```sql
+        SELECT
+            sum(movies_started) as total_started,
+            sum(movies_finished) as total_finished,
+            sum(unique_movies) as unique_movies
+        FROM user_stats_mv
+        WHERE user_id = '{user_id}'
+          AND event_date >= today() - 30
+        ```
+
+        2. **Total watch time:**
+        ```sql
+        SELECT sum(position_seconds) as total_seconds
+        FROM viewing_events
+        WHERE user_id = '{user_id}'
+          AND event_type = 'finish'
+          AND event_time >= now() - INTERVAL 30 DAY
+        ```
+
+        3. **Most watched movie:**
+        ```sql
+        SELECT movie_id, count() as watch_count
+        FROM viewing_events
+        WHERE user_id = '{user_id}'
+          AND event_type = 'start'
+          AND event_time >= now() - INTERVAL 30 DAY
+        GROUP BY movie_id
+        ORDER BY watch_count DESC
+        LIMIT 1
+        ```
+
+        **Example:**
+        ```bash
+        curl "http://localhost:8006/api/v1/analytics/user/{user_id}/stats?days=30"
+        ```
+
+        **Response:**
+        ```json
+        {
+          "user_id": "uuid",
+          "movies_started": 25,
+          "movies_finished": 18,
+          "unique_movies_watched": 20,
+          "total_watch_time_seconds": 108000,
+          "completion_rate": 72.0,
+          "period_days": 30,
+          "most_watched_movie_id": "uuid"
+        }
+        ```
+      operationId: get_user_stats_api_v1_analytics_user__user_id__stats_get
+      parameters:
+      - explode: false
+        in: path
+        name: user_id
+        required: true
+        schema:
+          title: User Id
+          type: string
+        style: simple
+      - description: Number of days to analyze
+        explode: true
+        in: query
+        name: days
+        required: false
+        schema:
+          default: 30
+          description: Number of days to analyze
+          maximum: 365
+          minimum: 1
+          title: Days
+          type: integer
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserStatsResponse"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get User Stats
+      tags:
+      - Analytics
+  /api/v1/analytics/trends:
+    get:
+      description: |-
+        Get viewing trends over time
+
+        **Query ClickHouse:**
+        ```sql
+        SELECT
+            toDate(event_time) as date,
+            countIf(event_type = 'start') as starts,
+            countIf(event_type = 'finish') as finishes,
+            uniq(user_id) as unique_users,
+            uniq(movie_id) as unique_movies
+        FROM viewing_events
+        WHERE event_time >= now() - INTERVAL 7 DAY
+        GROUP BY date
+        ORDER BY date
+        ```
+
+        **Example:**
+        ```bash
+        curl "http://localhost:8006/api/v1/analytics/trends?days=7"
+        ```
+
+        **Response:**
+        ```json
+        {
+          "period_days": 7,
+          "trends": [
+            {
+              "date": "2024-11-10",
+              "starts": 500,
+              "finishes": 350,
+              "unique_users": 200,
+              "unique_movies": 50
+            }
+          ]
+        }
+        ```
+      operationId: get_viewing_trends_api_v1_analytics_trends_get
+      parameters:
+      - description: Number of days to analyze
+        explode: true
+        in: query
+        name: days
+        required: false
+        schema:
+          default: 7
+          description: Number of days to analyze
+          maximum: 90
+          minimum: 1
+          title: Days
+          type: integer
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Viewing Trends
+      tags:
+      - Analytics
+  /api/v1/analytics/peak-hours:
+    get:
+      description: |-
+        Get peak viewing hours
+
+        **Query ClickHouse:**
+        ```sql
+        SELECT
+            toHour(event_time) as hour,
+            count() as events_count,
+            uniq(user_id) as unique_users
+        FROM viewing_events
+        WHERE event_time >= now() - INTERVAL 7 DAY
+        GROUP BY hour
+        ORDER BY hour
+        ```
+
+        **Example:**
+        ```bash
+        curl "http://localhost:8006/api/v1/analytics/peak-hours?days=7"
+        ```
+
+        **Response:**
+        ```json
+        {
+          "period_days": 7,
+          "peak_hours": [
+            {
+              "hour": 20,
+              "events_count": 5000,
+              "unique_users": 1200
+            }
+          ]
+        }
+        ```
+      operationId: get_peak_hours_api_v1_analytics_peak_hours_get
+      parameters:
+      - description: Number of days to analyze
+        explode: true
+        in: query
+        name: days
+        required: false
+        schema:
+          default: 7
+          description: Number of days to analyze
+          maximum: 90
+          minimum: 1
+          title: Days
+          type: integer
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Peak Hours
+      tags:
+      - Analytics
+  /api/v1/analytics/events:
+    post:
+      description: |-
+        Create viewing event manually (HTTP endpoint)
+
+        **Note:** This is optional. Events are typically consumed from Kafka.
+
+        **Body:**
+        ```json
+        {
+          "user_id": "uuid",
+          "movie_id": "uuid",
+          "event_type": "start",
+          "position_seconds": 0,
+          "session_id": "uuid",
+          "metadata": {}
+        }
+        ```
+
+        **Example:**
+        ```bash
+        curl -X POST http://localhost:8006/api/v1/analytics/events \
+          -H "Content-Type: application/json" \
+          -d '{
+            "user_id": "uuid",
+            "movie_id": "uuid",
+            "event_type": "start",
+            "position_seconds": 0
+          }'
+        ```
+      operationId: create_viewing_event_api_v1_analytics_events_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ViewingEventCreate"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Create Viewing Event
+      tags:
+      - Analytics
+  /:
+    get:
+      description: Root endpoint
+      operationId: root__get
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+      summary: Root
+  /health:
+    get:
+      description: Health check endpoint
+      operationId: health_check_health_get
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+      summary: Health Check
+components:
+  schemas:
+    HTTPValidationError:
+      example:
+        detail:
+        - msg: msg
+          loc:
+          - ValidationError_loc_inner
+          - ValidationError_loc_inner
+          type: type
+        - msg: msg
+          loc:
+          - ValidationError_loc_inner
+          - ValidationError_loc_inner
+          type: type
+      properties:
+        detail:
+          items:
+            $ref: "#/components/schemas/ValidationError"
+          title: detail
+          type: array
+      title: HTTPValidationError
+    PopularContentItem:
+      description: Popular content item
+      example:
+        completion_rate: 1.4658129805029452
+        total_views: 0
+        movie_id: movie_id
+        unique_viewers: 6
+      properties:
+        movie_id:
+          title: Movie Id
+          type: string
+        total_views:
+          title: Total Views
+          type: integer
+        unique_viewers:
+          title: Unique Viewers
+          type: integer
+        completion_rate:
+          nullable: true
+          title: completion_rate
+          type: number
+      required:
+      - movie_id
+      - total_views
+      - unique_viewers
+      title: PopularContentItem
+    PopularContentResponse:
+      description: Response with popular content
+      example:
+        period_days: 5
+        items:
+        - completion_rate: 1.4658129805029452
+          total_views: 0
+          movie_id: movie_id
+          unique_viewers: 6
+        - completion_rate: 1.4658129805029452
+          total_views: 0
+          movie_id: movie_id
+          unique_viewers: 6
+        total_items: 5
+      properties:
+        items:
+          items:
+            $ref: "#/components/schemas/PopularContentItem"
+          title: items
+          type: array
+        period_days:
+          title: Period Days
+          type: integer
+        total_items:
+          title: Total Items
+          type: integer
+      required:
+      - items
+      - period_days
+      - total_items
+      title: PopularContentResponse
+    UserStatsResponse:
+      description: User viewing statistics
+      example:
+        movies_finished: 6
+        completion_rate: 5.637376656633329
+        total_watch_time_seconds: 5
+        user_id: user_id
+        movies_started: 0
+        unique_movies_watched: 1
+        period_days: 2
+        most_watched_movie_id: most_watched_movie_id
+      properties:
+        user_id:
+          title: User Id
+          type: string
+        movies_started:
+          title: Movies Started
+          type: integer
+        movies_finished:
+          title: Movies Finished
+          type: integer
+        unique_movies_watched:
+          title: Unique Movies Watched
+          type: integer
+        total_watch_time_seconds:
+          title: Total Watch Time Seconds
+          type: integer
+        completion_rate:
+          title: Completion Rate
+          type: number
+        period_days:
+          title: Period Days
+          type: integer
+        most_watched_movie_id:
+          nullable: true
+          title: most_watched_movie_id
+          type: string
+      required:
+      - completion_rate
+      - movies_finished
+      - movies_started
+      - period_days
+      - total_watch_time_seconds
+      - unique_movies_watched
+      - user_id
+      title: UserStatsResponse
+    ValidationError:
+      example:
+        msg: msg
+        loc:
+        - ValidationError_loc_inner
+        - ValidationError_loc_inner
+        type: type
+      properties:
+        loc:
+          items:
+            $ref: "#/components/schemas/ValidationError_loc_inner"
+          title: loc
+          type: array
+        msg:
+          title: Message
+          type: string
+        type:
+          title: Error Type
+          type: string
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    ViewingEventCreate:
+      description: Schema for creating viewing event via HTTP
+      example:
+        metadata: "{}"
+        event_type: event_type
+        user_id: user_id
+        position_seconds: 0
+        session_id: session_id
+        movie_id: movie_id
+      properties:
+        user_id:
+          description: User UUID
+          title: User Id
+          type: string
+        movie_id:
+          description: Movie UUID
+          title: Movie Id
+          type: string
+        event_type:
+          description: "Event type: start, progress, finish"
+          title: Event Type
+          type: string
+        position_seconds:
+          default: 0
+          description: Playback position in seconds
+          minimum: 0.0
+          title: Position Seconds
+          type: integer
+        session_id:
+          nullable: true
+          title: session_id
+          type: string
+        metadata:
+          nullable: true
+          title: metadata
+          type: object
+      required:
+      - event_type
+      - movie_id
+      - user_id
+      title: ViewingEventCreate
+    ValidationError_loc_inner:
+      anyOf:
+      - type: string
+      - type: integer
+      title: ValidationError_loc_inner

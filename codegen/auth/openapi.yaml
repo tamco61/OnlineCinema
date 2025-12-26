@@ -1,0 +1,564 @@
+openapi: 3.1.0
+info:
+  description: Authentication and authorization service for online cinema platform
+  title: auth-service
+  version: 1.0.0
+servers:
+- url: /
+paths:
+  /health:
+    get:
+      description: |-
+        Health check endpoint.
+
+        Returns service status and version.
+      operationId: health_check_health_get
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+      summary: Health Check
+      tags:
+      - Health
+  /:
+    get:
+      description: |-
+        Root endpoint.
+
+        Returns service information.
+      operationId: root__get
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+      summary: Root
+      tags:
+      - Root
+  /api/v1/auth/register:
+    post:
+      description: Create a new user account with email and password
+      operationId: register_api_v1_auth_register_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRegister"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Register new user
+      tags:
+      - Authentication
+  /api/v1/auth/login:
+    post:
+      description: Authenticate user and receive access and refresh tokens
+      operationId: login_api_v1_auth_login_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserLogin"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Login user
+      tags:
+      - Authentication
+  /api/v1/auth/refresh:
+    post:
+      description: Get a new access token using a valid refresh token
+      operationId: refresh_token_api_v1_auth_refresh_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TokenRefresh"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Refresh access token
+      tags:
+      - Authentication
+  /api/v1/auth/logout:
+    post:
+      description: Invalidate refresh token (logout from current device)
+      operationId: logout_api_v1_auth_logout_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogoutRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Logout user
+      tags:
+      - Authentication
+  /api/v1/auth/logout-all:
+    post:
+      description: Invalidate all refresh tokens for the authenticated user
+      operationId: logout_all_api_v1_auth_logout_all_post
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+          description: Successful Response
+      security:
+      - HTTPBearer: []
+      summary: Logout from all devices
+      tags:
+      - Authentication
+  /api/v1/auth/me:
+    get:
+      description: Get information about the authenticated user
+      operationId: get_current_user_info_api_v1_auth_me_get
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+          description: Successful Response
+      security:
+      - HTTPBearer: []
+      summary: Get current user info
+      tags:
+      - Authentication
+  /api/v1/auth/oauth/google:
+    get:
+      description: Get Google OAuth authorization URL
+      operationId: google_oauth_init_api_v1_auth_oauth_google_get
+      parameters:
+      - description: Optional redirect URI after auth
+        explode: true
+        in: query
+        name: redirect_uri
+        required: false
+        schema:
+          description: Optional redirect URI after auth
+          title: Redirect Uri
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthAuthorizationResponse"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Initiate Google OAuth
+      tags:
+      - OAuth
+  /api/v1/auth/oauth/google/callback:
+    get:
+      description: Handle Google OAuth callback (redirect endpoint)
+      operationId: google_oauth_callback_api_v1_auth_oauth_google_callback_get
+      parameters:
+      - description: Authorization code from Google
+        explode: true
+        in: query
+        name: code
+        required: true
+        schema:
+          description: Authorization code from Google
+          title: Code
+          type: string
+        style: form
+      - description: State parameter for CSRF protection
+        explode: true
+        in: query
+        name: state
+        required: true
+        schema:
+          description: State parameter for CSRF protection
+          title: State
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Google OAuth callback
+      tags:
+      - OAuth
+    post:
+      description: Exchange authorization code for user tokens (for SPA/mobile apps)
+      operationId: google_oauth_token_exchange_api_v1_auth_oauth_google_callback_post
+      parameters:
+      - description: Authorization code from Google
+        explode: true
+        in: query
+        name: code
+        required: true
+        schema:
+          description: Authorization code from Google
+          title: Code
+          type: string
+        style: form
+      - description: State parameter
+        explode: true
+        in: query
+        name: state
+        required: true
+        schema:
+          description: State parameter
+          title: State
+          type: string
+        style: form
+      responses:
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthCallbackResponse"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Process Google OAuth code
+      tags:
+      - OAuth
+components:
+  schemas:
+    AuthResponse:
+      description: Schema for authentication response (login/register).
+      example:
+        tokens: ""
+        user: ""
+      properties:
+        user:
+          allOf:
+          - $ref: "#/components/schemas/UserResponse"
+          description: User information
+          title: user
+        tokens:
+          allOf:
+          - $ref: "#/components/schemas/TokenPair"
+          description: Authentication tokens
+          title: tokens
+      required:
+      - tokens
+      - user
+      title: AuthResponse
+    HTTPValidationError:
+      example:
+        detail:
+        - msg: msg
+          loc:
+          - ValidationError_loc_inner
+          - ValidationError_loc_inner
+          type: type
+        - msg: msg
+          loc:
+          - ValidationError_loc_inner
+          - ValidationError_loc_inner
+          type: type
+      properties:
+        detail:
+          items:
+            $ref: "#/components/schemas/ValidationError"
+          title: detail
+          type: array
+      title: HTTPValidationError
+    LogoutRequest:
+      description: Schema for logout request.
+      example:
+        refresh_token: refresh_token
+      properties:
+        refresh_token:
+          description: Refresh token to invalidate
+          title: Refresh Token
+          type: string
+      required:
+      - refresh_token
+      title: LogoutRequest
+    MessageResponse:
+      description: Simple message response.
+      example:
+        message: message
+      properties:
+        message:
+          description: Response message
+          title: Message
+          type: string
+      required:
+      - message
+      title: MessageResponse
+    OAuthAuthorizationResponse:
+      description: Schema for OAuth authorization response.
+      example:
+        authorization_url: authorization_url
+        state: state
+      properties:
+        authorization_url:
+          description: OAuth provider authorization URL
+          title: Authorization Url
+          type: string
+        state:
+          description: OAuth state parameter for CSRF protection
+          title: State
+          type: string
+      required:
+      - authorization_url
+      - state
+      title: OAuthAuthorizationResponse
+    OAuthCallbackResponse:
+      description: Schema for OAuth callback response.
+      example:
+        is_new_user: true
+        tokens: ""
+        user: ""
+      properties:
+        user:
+          allOf:
+          - $ref: "#/components/schemas/UserResponse"
+          description: User information
+          title: user
+        tokens:
+          allOf:
+          - $ref: "#/components/schemas/TokenPair"
+          description: Authentication tokens
+          title: tokens
+        is_new_user:
+          description: Whether this is a newly created user
+          title: Is New User
+          type: boolean
+      required:
+      - is_new_user
+      - tokens
+      - user
+      title: OAuthCallbackResponse
+    TokenPair:
+      description: Schema for JWT token pair.
+      properties:
+        access_token:
+          description: JWT access token
+          title: Access Token
+          type: string
+        refresh_token:
+          description: Refresh token
+          title: Refresh Token
+          type: string
+        token_type:
+          default: bearer
+          description: Token type
+          title: Token Type
+          type: string
+        expires_in:
+          description: Access token expiration time in seconds
+          title: Expires In
+          type: integer
+      required:
+      - access_token
+      - expires_in
+      - refresh_token
+      title: TokenPair
+    TokenRefresh:
+      description: Schema for token refresh request.
+      example:
+        refresh_token: refresh_token
+      properties:
+        refresh_token:
+          description: Refresh token
+          title: Refresh Token
+          type: string
+      required:
+      - refresh_token
+      title: TokenRefresh
+    TokenResponse:
+      description: Schema for new access token response.
+      example:
+        access_token: access_token
+        token_type: bearer
+        expires_in: 0
+      properties:
+        access_token:
+          description: New JWT access token
+          title: Access Token
+          type: string
+        token_type:
+          default: bearer
+          description: Token type
+          title: Token Type
+          type: string
+        expires_in:
+          description: Access token expiration time in seconds
+          title: Expires In
+          type: integer
+      required:
+      - access_token
+      - expires_in
+      title: TokenResponse
+    UserLogin:
+      description: Schema for user login.
+      example:
+        password: password
+        email: email
+      properties:
+        email:
+          description: User email address
+          format: email
+          title: Email
+          type: string
+        password:
+          description: User password
+          title: Password
+          type: string
+      required:
+      - email
+      - password
+      title: UserLogin
+    UserRegister:
+      description: Schema for user registration.
+      example:
+        password: password
+        email: email
+      properties:
+        email:
+          description: User email address
+          format: email
+          title: Email
+          type: string
+        password:
+          description: User password (min 8 characters)
+          maxLength: 128
+          minLength: 8
+          title: Password
+          type: string
+      required:
+      - email
+      - password
+      title: UserRegister
+    UserResponse:
+      description: Schema for user info response.
+      example:
+        is_active: true
+        created_at: 2000-01-23T04:56:07.000+00:00
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        email: email
+      properties:
+        id:
+          description: User ID
+          format: uuid
+          title: Id
+          type: string
+        email:
+          description: User email
+          title: Email
+          type: string
+        is_active:
+          description: Account active status
+          title: Is Active
+          type: boolean
+        created_at:
+          description: Account creation date
+          format: date-time
+          title: Created At
+          type: string
+      required:
+      - created_at
+      - email
+      - id
+      - is_active
+      title: UserResponse
+    ValidationError:
+      example:
+        msg: msg
+        loc:
+        - ValidationError_loc_inner
+        - ValidationError_loc_inner
+        type: type
+      properties:
+        loc:
+          items:
+            $ref: "#/components/schemas/ValidationError_loc_inner"
+          title: loc
+          type: array
+        msg:
+          title: Message
+          type: string
+        type:
+          title: Error Type
+          type: string
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    ValidationError_loc_inner:
+      anyOf:
+      - type: string
+      - type: integer
+      title: ValidationError_loc_inner
+  securitySchemes:
+    HTTPBearer:
+      scheme: bearer
+      type: http
