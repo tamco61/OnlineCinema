@@ -14,7 +14,7 @@ class Settings(BaseSettings):
 
     SERVICE_NAME: str = Field(default="analytics-service")
     SERVICE_VERSION: str = Field(default="1.0.0")
-
+    ENVIRONMENT: str = Field(default="development")
     HOST: str = Field(default="localhost")
     PORT: int = Field(default=8006)
 
