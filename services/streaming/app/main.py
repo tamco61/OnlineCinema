@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import logging
+from app.db.session import init_db # noqa
 
 # local module
 from core.config import settings
@@ -15,6 +16,10 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Lifespan context manager."""
     logger.info(f"Starting {settings.SERVICE_NAME} v{settings.SERVICE_VERSION}")
+
+    if settings.is_development:
+        await init_db()
+        logger.info("Database init")
 
     yield
 
@@ -32,4 +37,4 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# app.include_router()
+#app.include_router()
