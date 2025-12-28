@@ -68,7 +68,7 @@ class AuthService:
                 detail="add user db error"
             )
 
-        tokens = self._create_tokens_for_user(new_user.id)
+        tokens = await self._create_tokens_for_user(new_user.id)
 
         user_response = UserResponse.model_validate(new_user)
         return AuthResponse(user=user_response, tokens=tokens)

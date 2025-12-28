@@ -17,7 +17,10 @@ class Settings(BaseSettings):
     SERVICE_NAME: str = Field(default="auth-service")
     SERVICE_VERSION: str = Field(default="1.0.0")
     ENVIRONMENT: str = Field(default="development")
-    HOST: str = Field(default="localhost")
+
+    RELOAD: bool = Field(default=False, description="Auto-reload on code changes")
+    WORKERS: int = Field(default=1, description="Number of worker processes")
+    HOST: str = Field(default="0.0.0.0")
     PORT: int = Field(default=8001)
 
     POSTGRES_USER: str = Field(default="auth_user")
@@ -38,6 +41,10 @@ class Settings(BaseSettings):
 
     LOGIN_RATE_LIMIT_PER_MINUTE: int = Field(default=5)
     LOGIN_RATE_LIMIT_PER_HOUR: int = Field(default=20)
+
+    LOG_LEVEL: str = Field(default="INFO", description="Logging level")
+    JSON_LOGS: bool = Field(default=True, description="Enable JSON logging")
+
 
     CORS_ORIGINS: list[str] = Field(
         default=["http://localhost:3000", "http://localhost:8080"],

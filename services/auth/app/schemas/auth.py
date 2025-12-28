@@ -9,6 +9,7 @@ class UserRegister(BaseModel):
     email: EmailStr = Field(...)
     password: str = Field(...)
 
+    # todo переделать validate_password
     @field_validator("password")
     @classmethod
     def validate_password(cls, v: str) -> str:
@@ -26,12 +27,14 @@ class UserResponse(BaseModel):
     is_active: bool = Field(...)
     created_at: datetime = Field(...)
 
+    model_config = {"from_attributes": True}
+
 
 class TokenPair(BaseModel):
     access_token: str = Field(...)
     refresh_token: str = Field(...)
     token_type: str = Field(...)
-    expires_in: str = Field(...)
+    expires_in: int = Field(...)
 
 
 class TokenRefresh(BaseModel):
@@ -41,7 +44,7 @@ class TokenRefresh(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str = Field(...)
     token_type: str = Field(...)
-    expires_in: str = Field(...)
+    expires_in: int = Field(...)
 
 
 class AuthResponse(BaseModel):
