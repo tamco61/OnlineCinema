@@ -3,11 +3,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import logging
-from app.db.session import init_db # noqa
+
 
 # local module
-from core.config import settings
-
+from app.core.config import settings
+from app.db.session import init_db, close_db
+from app.api.router import api_router
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,7 @@ async def lifespan(app: FastAPI):
 
     yield
 
+    await close_db()
     logger.info(f"Shutdown {settings.SERVICE_NAME} v{settings.SERVICE_VERSION}")
 
 app = FastAPI(
@@ -37,4 +39,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-#app.include_router()
+app.include_router(api_router)
+
+@app.get("/", tags=["Root"])
+async def root():
+    return{
+        "service": settings.SERVICE_NAME,
+        "version": settings.SERVICE_VERSION,
+        "docs": "/docs"
+    }
