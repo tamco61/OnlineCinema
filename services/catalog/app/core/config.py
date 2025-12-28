@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = Field(default="development")
     HOST: str = Field(default="localhost")
     PORT: int = Field(default=8003)
+    RELOAD: bool = Field(default=False)
+
 
     POSTGRES_USER: str = Field(default="catalog_service")
     POSTGRES_PASSWORD: str = Field(default="catalog_password")
@@ -29,6 +31,10 @@ class Settings(BaseSettings):
     REDIS_PASSWORD: str | None = Field(default=None)
     REDIS_DB: int = Field(default=0)
     REDIS_CACHE_TTL: int = Field(default=600, description="Cache TTL in seconds (10 min)")
+
+    KAFKA_BOOTSTRAP_SERVERS: str = Field(default="localhost:9092")
+    KAFKA_TOPIC_PREFIX: str = Field(default="catalog")
+    ENABLE_KAFKA: bool = Field(default=True, description="Enable Kafka events")
 
     CORS_ORIGINS: list[str] = Field(default=["http://localhost:3000"])
 
