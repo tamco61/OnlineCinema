@@ -19,7 +19,7 @@ class RedisService:
         self.redis = redis_client
         self._initialized = False
 
-    def get_initialized(self):
+    def get_initialized(self) -> bool:
         return self._initialized
 
     async def initialize(self) -> None:
