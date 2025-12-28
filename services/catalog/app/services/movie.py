@@ -1,16 +1,16 @@
-
 import uuid
 from datetime import datetime
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Depends
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.services.redis import RedisService
+from app.services.redis import RedisService, get_redis_service
 from app.db.models import Genre, Movie, MoviePerson, Person, PersonRole
 from app.schemas.movie import MovieCreate, MovieUpdate
-from app.services.kafka import KafkaProducerService
+from app.services.kafka import KafkaProducerService, get_kafka_producer
+from app.db.session import get_db
 
 
 class MovieService:
@@ -34,7 +34,7 @@ class MovieService:
         query = select(Movie)
 
         if published_only:
-            query = query.where(Movie.is_published == True)
+            query = query.where(Movie.is_published)
 
         if search:
             query = query.where(
@@ -191,3 +191,11 @@ class MovieService:
         )
 
         return movie
+
+
+async def get_movie_service(
+    db: AsyncSession = Depends(get_db),
+    kafka: KafkaProducerService = Depends(get_kafka_producer),
+    redis: RedisService = Depends(get_redis_service),
+) -> MovieService:
+    return MovieService(db, kafka, redis)
