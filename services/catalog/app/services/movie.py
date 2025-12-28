@@ -1,4 +1,3 @@
-"""Movie service with Kafka events and Redis caching."""
 
 import uuid
 from datetime import datetime
@@ -8,24 +7,22 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.cache import CacheService
+from app.services.redis import RedisService
 from app.db.models import Genre, Movie, MoviePerson, Person, PersonRole
 from app.schemas.movie import MovieCreate, MovieUpdate
-from app.services.kafka_producer import KafkaProducerService
+from app.services.kafka import KafkaProducerService
 
 
 class MovieService:
-    """Service for managing movies with Kafka and Redis."""
-
     def __init__(
         self,
         db: AsyncSession,
         kafka: KafkaProducerService,
-        cache: CacheService,
+        redis: RedisService,
     ):
         self.db = db
         self.kafka = kafka
-        self.cache = cache
+        self.redis = redis
 
     async def get_movies(
         self,
@@ -34,7 +31,6 @@ class MovieService:
         published_only: bool = True,
         search: str | None = None,
     ) -> tuple[list[Movie], int]:
-        """Get movies list with pagination."""
         query = select(Movie)
 
         if published_only:
@@ -48,12 +44,10 @@ class MovieService:
                 )
             )
 
-        # Count total
         count_query = select(func.count()).select_from(query.subquery())
         total_result = await self.db.execute(count_query)
         total = total_result.scalar() or 0
 
-        # Get paginated results
         query = (
             query.order_by(Movie.created_at.desc())
             .offset((page - 1) * page_size)
@@ -66,10 +60,8 @@ class MovieService:
         return movies, total
 
     async def get_movie_by_id(self, movie_id: uuid.UUID) -> Movie | None:
-        """Get movie by ID with caching."""
-        # Try cache first
-        cached = await self.cache.get_movie(movie_id)
-        if cached:
+        redis = await self.redis.get_movie(movie_id)
+        if redis:
             result = await self.db.execute(
                 select(Movie)
                 .where(Movie.id == movie_id)
@@ -91,7 +83,7 @@ class MovieService:
         movie = result.scalar_one_or_none()
 
         if movie:
-            await self.cache.set_movie(
+            await self.redis.set_movie(
                 movie_id,
                 {"id": str(movie.id), "title": movie.title, "year": movie.year},
             )
@@ -164,7 +156,7 @@ class MovieService:
         await self.db.commit()
         await self.db.refresh(movie)
 
-        await self.cache.delete_movie(movie_id)
+        await self.redis.delete_movie(movie_id)
 
         await self.kafka.publish_movie_updated(
             movie.id,
@@ -182,12 +174,12 @@ class MovieService:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Already published")
 
         movie.is_published = True
-        movie.published_at = datetime.utcnow()
+        movie.published_at = datetime.now()
 
         await self.db.commit()
         await self.db.refresh(movie)
 
-        await self.cache.delete_movie(movie_id)
+        await self.redis.delete_movie(movie_id)
 
         await self.kafka.publish_movie_published(
             movie.id,
