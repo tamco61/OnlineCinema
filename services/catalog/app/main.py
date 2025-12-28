@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 import logging
 
 # local module
-from core.config import settings
+from app.core.config import settings
 from app.db.session import init_db, close_db
 from app.services.redis import redis_service
 from app.services.kafka import kafka_producer

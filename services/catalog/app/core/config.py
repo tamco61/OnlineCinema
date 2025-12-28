@@ -15,10 +15,9 @@ class Settings(BaseSettings):
     SERVICE_NAME: str = Field(default="catalog-service")
     SERVICE_VERSION: str = Field(default="1.0.0")
     ENVIRONMENT: str = Field(default="development")
-    HOST: str = Field(default="localhost")
+    HOST: str = Field(default="0.0.0.0")
     PORT: int = Field(default=8003)
     RELOAD: bool = Field(default=False)
-
 
     POSTGRES_USER: str = Field(default="catalog_service")
     POSTGRES_PASSWORD: str = Field(default="catalog_password")
