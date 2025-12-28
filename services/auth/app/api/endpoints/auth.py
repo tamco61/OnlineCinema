@@ -3,7 +3,7 @@ from uuid import UUID
 
 
 from app.core.security import get_current_user_id, get_current_user
-from app.services.auth import AuthService # noqa
+from app.services.auth import AuthService
 from app.db.models import User
 from app.schemas.auth import (
     AuthResponse,

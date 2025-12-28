@@ -9,6 +9,7 @@ import logging
 from app.core.config import settings
 from app.db.session import init_db, close_db
 from app.api.router import api_router
+from app.services.redis import redis_service
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,10 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Lifespan context manager."""
     logger.info(f"Starting {settings.SERVICE_NAME} v{settings.SERVICE_VERSION}")
+    logger.info(f"Environment: {settings.ENVIRONMENT}")
+
+    await redis_service.initialize()
+    logger.info("redis start")
 
     if settings.is_development:
         await init_db()
@@ -24,6 +29,7 @@ async def lifespan(app: FastAPI):
 
     yield
 
+    await redis_service.close()
     await close_db()
     logger.info(f"Shutdown {settings.SERVICE_NAME} v{settings.SERVICE_VERSION}")
 

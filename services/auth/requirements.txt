@@ -1,2 +1,4 @@
 pwdlib
 redis
+sqlalchemy
+fastapi
