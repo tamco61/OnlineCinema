@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  user-service:
+    build: .
+    ports:
+      - "8002:8002"
+    environment:
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      - JWT_SECRET_KEY=dev-secret-key-match-auth-service
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=user_service
+      - POSTGRES_PASSWORD=user_password
+      - POSTGRES_DB=user_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - user_postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6381:6379"
+    volumes:
+      - user_redis_data:/data
+
+volumes:
+  user_postgres_data:
+  user_redis_data:
