@@ -61,7 +61,7 @@ class KafkaEventProducer:
             "user_id": user_id,
             "movie_id": movie_id,
             "action": "stream_start",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now().isoformat()
         }
 
         await self.publish_event(topic, event, key=user_id)
@@ -74,7 +74,7 @@ class KafkaEventProducer:
             "movie_id": movie_id,
             "action": "stream_stop",
             "position_seconds": position_seconds,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now().isoformat()
         }
 
         await self.publish_event(topic, event, key=user_id)
@@ -87,7 +87,7 @@ class KafkaEventProducer:
             "movie_id": movie_id,
             "action": "progress_update",
             "position_seconds": position_seconds,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now().isoformat()
         }
 
         await self.publish_event(topic, event, key=user_id)
