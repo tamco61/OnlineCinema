@@ -2,16 +2,18 @@ import logging
 import uuid
 from datetime import datetime
 
+from fastapi import Depends
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.services.redis import RedisCache
-from app.services.s3 import S3Client
-from app.services.kafka import KafkaEventProducer
-from app.services.user_client import UserServiceClient
+from app.services.redis import RedisCache, get_cache
+from app.services.s3 import S3Client, get_s3_client
+from app.services.kafka import KafkaEventProducer, get_kafka_producer
+from app.services.user_client import UserServiceClient, get_user_service_client
 
 from app.db.models import StreamSession, WatchProgress
+from app.db.session import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -137,3 +139,13 @@ class StreamingService:
         await self.kafka.publish_stream_stop(user_id, movie_id, position_seconds)
 
         logger.info(f"Ended stream: user={user_id}, movie={movie_id}, final_position={position_seconds}s")
+
+
+async def get_streaming_service(
+    db: AsyncSession = Depends(get_db),
+    s3_client: S3Client = Depends(get_s3_client),
+    cache: RedisCache = Depends(get_cache),
+    kafka_producer: KafkaEventProducer = Depends(get_kafka_producer),
+    user_client: UserServiceClient = Depends(get_user_service_client)
+) -> StreamingService:
+    return StreamingService(db, s3_client, user_client, kafka_producer, cache)
