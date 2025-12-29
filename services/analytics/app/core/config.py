@@ -15,8 +15,27 @@ class Settings(BaseSettings):
     SERVICE_NAME: str = Field(default="analytics-service")
     SERVICE_VERSION: str = Field(default="1.0.0")
     ENVIRONMENT: str = Field(default="development")
-    HOST: str = Field(default="localhost")
+    HOST: str = Field(default="0.0.0.0")
     PORT: int = Field(default=8006)
+    DEBUG: bool = False
+
+    # ClickHouse
+    CLICKHOUSE_HOST: str = "localhost"
+    CLICKHOUSE_PORT: int = 9000
+    CLICKHOUSE_HTTP_PORT: int = 8123
+    CLICKHOUSE_USER: str = "default"
+    CLICKHOUSE_PASSWORD: str = ""
+    CLICKHOUSE_DATABASE: str = "analytics"
+
+    # Kafka
+    KAFKA_BOOTSTRAP_SERVERS: str = "localhost:9092"
+    KAFKA_CONSUMER_GROUP: str = "analytics-service"
+    KAFKA_AUTO_OFFSET_RESET: str = "earliest"
+    ENABLE_KAFKA: bool = True
+
+    # Analytics Settings
+    DEFAULT_TIME_RANGE_DAYS: int = 7
+    POPULAR_CONTENT_LIMIT: int = 10
 
 
 @lru_cache
