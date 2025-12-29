@@ -1,6 +1,8 @@
 from elasticsearch import AsyncElasticsearch
 from app.core.config import settings
-from app.services.redis import RedisService
+from app.services.elastic import get_es_client
+from app.services.redis import RedisService, get_redis
+from fastapi import Depends
 from app.schemas.search import (
     SearchRequest,
     SearchResponse,
@@ -284,3 +286,10 @@ class SearchService:
 
         except Exception as e:
             logger.error(f"Delete error for movie {movie_id}: {e}")
+
+
+async def get_search_service(
+    es_client: AsyncElasticsearch = Depends(get_es_client),
+    redis: RedisService = Depends(get_redis)
+) -> SearchService:
+    return SearchService(es_client, redis)
