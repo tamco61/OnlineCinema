@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = Field(default="development")
     HOST: str = Field(default="0.0.0.0")
     PORT: int = Field(default=8005)
+    DEBUG: bool = False
 
     POSTGRES_HOST: str = "localhost"
     POSTGRES_PORT: int = 5432

@@ -1,0 +1,27 @@
+# FastAPI
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Database
+sqlalchemy==2.0.23
+asyncpg==0.29.0
+
+# Redis
+redis==5.0.1
+
+# S3/MinIO
+boto3==1.34.0
+
+# Kafka
+aiokafka==0.10.0
+
+# HTTP Client
+httpx==0.25.2
+
+# Auth
+PyJWT==2.8.0
+
+# Utilities
+python-multipart==0.0.6
