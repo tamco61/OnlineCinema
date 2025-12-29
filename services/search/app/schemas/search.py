@@ -3,7 +3,8 @@ from typing import Optional
 from datetime import datetime
 
 
-# Nested models
+# todo: rework UUID
+
 class GenreInfo(BaseModel):
     id: str
     name: str
@@ -21,7 +22,6 @@ class DirectorInfo(BaseModel):
     full_name: str
 
 
-# Search result model
 class MovieSearchResult(BaseModel):
     movie_id: str
     title: str
