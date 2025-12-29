@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  # Auth Service
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: auth-service
+    ports:
+      - "8001:8001"
+    environment:
+      - ENVIRONMENT=development
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=auth_user
+      - POSTGRES_PASSWORD=auth_password
+      - POSTGRES_DB=auth_db
+      - REDIS_HOST=redis
+      - JWT_SECRET_KEY=dev-secret-key-change-in-production-32-chars
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - cinema-network
+    volumes:
+      - ./app:/app/app:ro
+    restart: unless-stopped
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: auth-postgres
+    environment:
+      - POSTGRES_USER=auth_user
+      - POSTGRES_PASSWORD=auth_password
+      - POSTGRES_DB=auth_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth_user -d auth_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cinema-network
+    restart: unless-stopped
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: auth-redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - cinema-network
+    restart: unless-stopped
+
+networks:
+  cinema-network:
+    name: cinema-network
+    driver: bridge
+
+volumes:
+  postgres_data:
+    name: auth-postgres-data
+  redis_data:
+    name: auth-redis-data

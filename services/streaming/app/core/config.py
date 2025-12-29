@@ -14,10 +14,28 @@ class Settings(BaseSettings):
 
     SERVICE_NAME: str = Field(default="streaming-service")
     SERVICE_VERSION: str = Field(default="1.0.0")
-
+    ENVIRONMENT: str = Field(default="development")
     HOST: str = Field(default="localhost")
     PORT: int = Field(default=8005)
 
+    POSTGRES_HOST: str = "localhost"
+    POSTGRES_PORT: int = 5432
+    POSTGRES_USER: str = "streaming_service"
+    POSTGRES_PASSWORD: str = "streaming_password"
+    POSTGRES_DB: str = "streaming_db"
+
+    @property
+    def database_url(self) -> str:
+        """Construct PostgreSQL DSN."""
+        return (
+            f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
+            f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        )
+
+    @property
+    def is_development(self) -> bool:
+        """Check if running in development mode."""
+        return self.ENVIRONMENT.lower() == "development"
 
 @lru_cache
 def get_settings() -> Settings:

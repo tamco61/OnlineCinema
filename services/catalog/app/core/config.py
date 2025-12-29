@@ -14,10 +14,29 @@ class Settings(BaseSettings):
 
     SERVICE_NAME: str = Field(default="catalog-service")
     SERVICE_VERSION: str = Field(default="1.0.0")
-
+    ENVIRONMENT: str = Field(default="development")
     HOST: str = Field(default="localhost")
     PORT: int = Field(default=8003)
 
+    # Database
+    POSTGRES_USER: str = Field(default="catalog_service")
+    POSTGRES_PASSWORD: str = Field(default="catalog_password")
+    POSTGRES_HOST: str = Field(default="localhost")
+    POSTGRES_PORT: int = Field(default=5432)
+    POSTGRES_DB: str = Field(default="catalog_db")
+
+    @property
+    def database_url(self) -> str:
+        """Construct PostgreSQL DSN."""
+        return (
+            f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
+            f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        )
+
+    @property
+    def is_development(self) -> bool:
+        """Check if running in development mode."""
+        return self.ENVIRONMENT.lower() == "development"
 
 @lru_cache
 def get_settings() -> Settings:
