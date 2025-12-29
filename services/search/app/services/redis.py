@@ -82,43 +82,24 @@ class RedisService:
             logger.error(f"Redis set error: {e}")
             return False
 
-    async def invalidate_search_redis(self) -> int:
+    async def invalidate_movie(self, movie_id: str) -> None:
         if not self.is_active:
-            return 0
+            return
 
         try:
+            cursor = 0
             pattern = "search:query:*"
-            keys_deleted = 0
 
-            async for key in self.redis.scan_iter(match=pattern):
-                await self.redis.delete(key)
-                keys_deleted += 1
+            while True:
+                cursor, keys = await self.redis.scan(cursor, match=pattern, count=100)
+                if keys:
+                    await self.redis.delete(*keys)
+                    logger.debug(f"Invalidated {len(keys)} search cache keys")
 
-            if keys_deleted:
-                logger.debug(f"🗑️  Invalidated {keys_deleted} search redis keys")
-
-            return keys_deleted
+                if cursor == 0:
+                    break
         except Exception as e:
-            logger.error(f"Service invalidation error: {e}")
-            return 0
-
-    async def invalidate_pattern(self, pattern: str) -> int:
-        if not self.is_active:
-            return 0
-
-        try:
-            keys_deleted = 0
-            async for key in self.redis.scan_iter(match=pattern):
-                await self.redis.delete(key)
-                keys_deleted += 1
-
-            if keys_deleted:
-                logger.debug(f"🗑️  Invalidated {keys_deleted} redis keys with pattern: {pattern}")
-
-            return keys_deleted
-        except Exception as e:
-            logger.error(f"Pattern invalidation error: {e}")
-            return 0
+            logger.error(f"Cache invalidation error: {e}")
 
     @staticmethod
     def generate_query_hash(query: str, filters: Dict[str, Any]) -> str:
