@@ -1,0 +1,18 @@
+# FastAPI
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+aiohttp
+
+# Elasticsearch
+elasticsearch==8.11.0
+
+# Kafka
+aiokafka==0.10.0
+
+# Redis
+redis==5.0.1
+
+# Utilities
+python-multipart==0.0.6

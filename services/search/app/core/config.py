@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = Field(default="development")
     HOST: str = Field(default="0.0.0.0")
     PORT: int = Field(default=8004)
+    DEBUG: bool = False
+
 
     ELASTICSEARCH_HOSTS: list[str] = ["http://localhost:9200"]
     ELASTICSEARCH_INDEX: str = "movies"
