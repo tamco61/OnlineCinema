@@ -1,4 +1,9 @@
+import logging
+import json
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, Query
+
 from app.services.clickhouse import get_clickhouse_client, ClickHouseClient
 from app.services.analytics import AnalyticsService
 from app.schemas.analytics import (
@@ -7,9 +12,6 @@ from app.schemas.analytics import (
     ViewingEventCreate
 )
 
-import logging
-import json
-from datetime import datetime
 
 logger = logging.getLogger(__name__)
 

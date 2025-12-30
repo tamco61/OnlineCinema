@@ -1,15 +1,16 @@
-# remote module
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import logging
 import asyncio
+from typing import AsyncIterator
 
-# local module
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
 from app.core.config import settings
 from app.services.kafka import ViewingEventsConsumer
 from app.services.clickhouse import clickhouse
 from app.api.endpoints.analytics import router
+
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +19,10 @@ consumer_task: asyncio.Task | None = None
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Manage application lifecycle."""
     logger.info(f"Starting {settings.SERVICE_NAME} v{settings.SERVICE_VERSION}")
+
     try:
         clickhouse.ensure_database()
         clickhouse.connect()

@@ -1,7 +1,10 @@
-from clickhouse_driver import Client
-from app.core.config import settings
 import logging
 from typing import List
+
+from clickhouse_driver import Client
+
+from app.core.config import settings
+
 
 logger = logging.getLogger(__name__)
 

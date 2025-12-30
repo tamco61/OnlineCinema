@@ -1,3 +1,5 @@
+import logging
+
 from app.services.clickhouse import ClickHouseClient
 from app.schemas.analytics import (
     PopularContentItem,
@@ -5,7 +7,6 @@ from app.schemas.analytics import (
     UserStatsResponse
 )
 
-import logging
 
 logger = logging.getLogger(__name__)
 
