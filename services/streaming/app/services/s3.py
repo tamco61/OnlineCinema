@@ -1,8 +1,11 @@
+import logging
+
 import boto3
 from botocore.client import Config
 from botocore.exceptions import ClientError
+
 from app.core.config import settings
-import logging
+
 
 logger = logging.getLogger(__name__)
 

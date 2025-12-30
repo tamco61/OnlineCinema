@@ -1,4 +1,7 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Header, Request
+
 from app.core.security import verify_access_token
 from app.core.config import settings
 from app.services.streaming import StreamingService, get_streaming_service
@@ -9,7 +12,7 @@ from app.schemas.streaming import (
     ProgressUpdateResponse,
     WatchProgressResponse
 )
-import logging
+
 
 logger = logging.getLogger(__name__)
 

@@ -1,13 +1,11 @@
-# remote module
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import logging
 
-# local module
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
 from app.core.config import settings
 from app.api.endpoints.streaming import router
-
 from app.services.s3 import s3_client
 from app.services.kafka import kafka
 from app.services.redis import cache

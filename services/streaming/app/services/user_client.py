@@ -1,7 +1,9 @@
 import httpx
+import logging
+
 from app.core.config import settings
 from app.services.redis import cache
-import logging
+
 
 logger = logging.getLogger(__name__)
 

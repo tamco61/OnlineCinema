@@ -3,7 +3,6 @@ import uuid
 from datetime import datetime
 
 from fastapi import Depends
-
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -11,7 +10,6 @@ from app.services.redis import RedisCache, get_cache
 from app.services.s3 import S3Client, get_s3_client
 from app.services.kafka import KafkaEventProducer, get_kafka_producer
 from app.services.user_client import UserServiceClient, get_user_service_client
-
 from app.db.models import StreamSession, WatchProgress
 from app.db.session import get_db
 

@@ -1,8 +1,10 @@
-from aiokafka import AIOKafkaProducer
+import logging
 import json
 from datetime import datetime
+
+from aiokafka import AIOKafkaProducer
+
 from app.core.config import settings
-import logging
 
 logger = logging.getLogger(__name__)
 
