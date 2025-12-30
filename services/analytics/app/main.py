@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.services.kafka import ViewingEventsConsumer
 from app.services.clickhouse import clickhouse
-from app.api.endpoints.analytics import router
+from app.api.router import router
 
 
 logger = logging.getLogger(__name__)

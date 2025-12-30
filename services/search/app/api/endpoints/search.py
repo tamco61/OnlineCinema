@@ -12,7 +12,7 @@ from app.schemas.search import (
     SuggestResponse
 )
 
-router = APIRouter(prefix="/search", tags=["Search"])
+router = APIRouter()
 
 
 @router.get("", response_model=SearchResponse)

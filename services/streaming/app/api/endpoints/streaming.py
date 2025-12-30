@@ -16,7 +16,7 @@ from app.schemas.streaming import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/stream", tags=["Streaming"])
+router = APIRouter()
 
 
 def get_access_token(authorization: str = Header(...)) -> str:

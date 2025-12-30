@@ -12,7 +12,8 @@ from app.schemas.auth import (
     TokenRefresh,
     TokenResponse,
     LogoutRequest,
-    MessageResponse, UserResponse
+    MessageResponse,
+    UserResponse
 )
 from app.services.auth import get_auth_service
 

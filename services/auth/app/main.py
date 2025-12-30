@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.db.session import init_db, close_db
-from app.api.router import api_router
+from app.api.router import router
 from app.services.redis import redis_service
 
 
@@ -44,7 +44,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(api_router)
+app.include_router(router)
 
 @app.get("/health", tags=["Health"])
 async def health_check():

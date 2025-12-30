@@ -10,7 +10,7 @@ from app.services.elastic import es_client
 from app.services.redis import redis
 from app.services.search import get_search_service
 from app.services.kafka import MovieEventConsumer
-from app.api.endpoints.search import router
+from app.api.router import router
 
 logger = logging.getLogger(__name__)
 

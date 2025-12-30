@@ -15,7 +15,7 @@ from app.schemas.analytics import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/analytics", tags=["Analytics"])
+router = APIRouter()
 
 
 def get_analytics_service(
