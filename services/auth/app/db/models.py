@@ -1,7 +1,3 @@
-"""
-Database models for Auth Service.
-"""
-
 import uuid
 from datetime import datetime
 

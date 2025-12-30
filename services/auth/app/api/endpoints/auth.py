@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Request, status, HTTPException, Depends
 from uuid import UUID
 
+from fastapi import APIRouter, Request, status, HTTPException, Depends
 
 from app.core.security import get_current_user_id, get_current_user
 from app.services.auth import AuthService
@@ -14,7 +14,6 @@ from app.schemas.auth import (
     LogoutRequest,
     MessageResponse, UserResponse
 )
-
 from app.services.auth import get_auth_service
 
 router = APIRouter()

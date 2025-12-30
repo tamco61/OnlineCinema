@@ -1,15 +1,14 @@
-# remote module
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import logging
 
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-# local module
 from app.core.config import settings
 from app.db.session import init_db, close_db
 from app.api.router import api_router
 from app.services.redis import redis_service
+
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +54,7 @@ async def health_check():
         "version": settings.SERVICE_VERSION,
         "environment": settings.ENVIRONMENT,
     }
+
 
 @app.get("/", tags=["Root"])
 async def root():

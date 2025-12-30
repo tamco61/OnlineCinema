@@ -1,14 +1,14 @@
-from fastapi import Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 from uuid import UUID
 from typing import Optional
 
-from app.db.session import get_db # noqa
-from app.db.models import User # noqa
-from app.schemas.auth import AuthResponse, TokenPair, UserResponse, TokenResponse # noqa
-from app.core.security import get_password_hash, verify_password # noqa
+from fastapi import Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
+from app.db.session import get_db
+from app.db.models import User
+from app.schemas.auth import AuthResponse, TokenPair, UserResponse, TokenResponse
+from app.core.security import get_password_hash, verify_password
 from app.services.jwt import JWTService, get_jwt_service
 from app.services.redis import RedisService, get_redis_service
 

@@ -9,7 +9,7 @@ class UserRegister(BaseModel):
     email: EmailStr = Field(...)
     password: str = Field(...)
 
-    # todo переделать validate_password
+    # todo: переделать validate_password
     @field_validator("password")
     @classmethod
     def validate_password(cls, v: str) -> str:

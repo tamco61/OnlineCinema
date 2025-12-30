@@ -22,7 +22,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 async def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> UUID:
-    jwt_service = get_jwt_service()
+    jwt_service = await get_jwt_service()
 
     token = credentials.credentials
 

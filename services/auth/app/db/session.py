@@ -4,7 +4,7 @@ from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import declarative_base
 
-from app.core.config import settings  # noqa
+from app.core.config import settings
 
 engine: Optional[AsyncEngine] = None
 async_session_maker: Optional[async_sessionmaker[AsyncSession]] = None
@@ -60,8 +60,6 @@ async def init_db() -> None:
     engine = get_engine()
 
     async with engine.begin() as conn:
-        from app.db import models  # noqa
-
         await conn.run_sync(Base.metadata.create_all)
 
 
