@@ -1,14 +1,13 @@
 from typing import Any, Optional
 from uuid import UUID, uuid4
 from datetime import datetime, timedelta
-from app.core.config import settings
 
 from jose import jwt, JWTError
 
+from app.core.config import settings
 
 
 class JWTService:
-    # todo
     def __init__(self):
         self.secret_key = settings.JWT_SECRET_KEY
         self.algorithm = settings.JWT_ALGORITHM
