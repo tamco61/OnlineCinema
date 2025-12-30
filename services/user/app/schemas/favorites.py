@@ -1,5 +1,3 @@
-"""Pydantic schemas for favorites."""
-
 from uuid import UUID
 from datetime import datetime
 

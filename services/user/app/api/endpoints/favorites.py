@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
+
 from app.core.security import get_current_user_id
 from app.schemas.favorites import FavoriteResponse
 from app.services.favorites import FavoritesService, get_favorites_service

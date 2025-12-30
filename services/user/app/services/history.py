@@ -3,11 +3,12 @@ from datetime import datetime
 
 from sqlalchemy import and_, desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import Depends
 
 from app.db.models import UserProfile, WatchHistory
 from app.schemas.history import WatchHistoryUpdate
 from app.db.session import get_db
-from fastapi import Depends
+
 
 class HistoryService:
 
@@ -42,7 +43,7 @@ class HistoryService:
             history.progress_seconds = data.progress_seconds
             history.duration_seconds = data.duration_seconds
             history.completed = data.completed
-            history.last_watched_at = datetime.utcnow()
+            history.last_watched_at = datetime.now()
         else:
             history = WatchHistory(
                 profile_id=profile_id,
@@ -51,7 +52,7 @@ class HistoryService:
                 progress_seconds=data.progress_seconds,
                 duration_seconds=data.duration_seconds,
                 completed=data.completed,
-                last_watched_at=datetime.utcnow(),
+                last_watched_at=datetime.now(),
             )
             self.db.add(history)
 

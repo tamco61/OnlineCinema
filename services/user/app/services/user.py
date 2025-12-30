@@ -1,5 +1,3 @@
-"""User profile service."""
-
 import uuid
 
 from fastapi import HTTPException, status, Depends

@@ -14,6 +14,7 @@ class RedisService:
 
     def get_initialized(self):
         return self._initialized
+
     async def initialize(self) -> None:
         if not self._initialized:
             self.redis = await aioredis.from_url(
