@@ -1,9 +1,11 @@
-from aiokafka import AIOKafkaConsumer
 import json
 import logging
+from datetime import datetime
+
+from aiokafka import AIOKafkaConsumer
+
 from app.core.config import settings
 from app.services.search import SearchService
-from datetime import datetime
 
 logger = logging.getLogger(__name__)
 

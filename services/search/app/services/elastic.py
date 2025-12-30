@@ -1,6 +1,9 @@
-from elasticsearch import AsyncElasticsearch
-from app.core.config import settings
 import logging
+
+from elasticsearch import AsyncElasticsearch
+
+from app.core.config import settings
+
 
 logger = logging.getLogger(__name__)
 

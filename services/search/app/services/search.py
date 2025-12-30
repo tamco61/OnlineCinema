@@ -1,8 +1,12 @@
+import logging
+import math
+
 from elasticsearch import AsyncElasticsearch
+from fastapi import Depends
+
 from app.core.config import settings
 from app.services.elastic import get_es_client
 from app.services.redis import RedisService, get_redis
-from fastapi import Depends
 from app.schemas.search import (
     SearchRequest,
     SearchResponse,
@@ -11,8 +15,6 @@ from app.schemas.search import (
     SuggestResponse,
     SuggestionItem
 )
-import logging
-import math
 
 logger = logging.getLogger(__name__)
 

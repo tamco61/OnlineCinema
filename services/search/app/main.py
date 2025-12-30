@@ -1,12 +1,10 @@
-# remote module
 import asyncio
-
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import logging
 
-# local module
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
 from app.core.config import settings
 from app.services.elastic import es_client
 from app.services.redis import redis
