@@ -1,12 +1,3 @@
-"""
-Kafka producer service for publishing events.
-
-Events:
-- catalog.movie.created
-- catalog.movie.updated
-- catalog.movie.published
-"""
-
 import json
 import uuid
 from datetime import datetime

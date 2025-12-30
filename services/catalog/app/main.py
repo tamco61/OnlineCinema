@@ -1,10 +1,9 @@
-# remote module
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import logging
 
-# local module
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
 from app.core.config import settings
 from app.db.session import init_db, close_db
 from app.services.redis import redis_service
