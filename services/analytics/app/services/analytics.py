@@ -7,7 +7,6 @@ from app.schemas.analytics import (
     UserStatsResponse
 )
 
-
 logger = logging.getLogger(__name__)
 
 

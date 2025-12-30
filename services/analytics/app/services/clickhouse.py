@@ -5,7 +5,6 @@ from clickhouse_driver import Client
 
 from app.core.config import settings
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -144,14 +143,14 @@ class ClickHouseClient:
             raise
 
     def insert_viewing_event(
-        self,
-        user_id: str,
-        movie_id: str,
-        event_type: str,
-        position_seconds: int,
-        event_time: str,
-        session_id: str = None,
-        metadata: str = "{}"
+            self,
+            user_id: str,
+            movie_id: str,
+            event_type: str,
+            position_seconds: int,
+            event_time: str,
+            session_id: str = None,
+            metadata: str = "{}"
     ):
         query = """
         INSERT INTO viewing_events

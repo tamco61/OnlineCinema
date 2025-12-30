@@ -11,7 +11,6 @@ from app.services.kafka import ViewingEventsConsumer
 from app.services.clickhouse import clickhouse
 from app.api.router import router
 
-
 logger = logging.getLogger(__name__)
 
 kafka_consumer: ViewingEventsConsumer | None = None
@@ -42,7 +41,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         logger.error(f"Startup error: {e}")
         raise
 
-
     yield
 
     try:
@@ -64,6 +62,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         logger.error(f"Shutdown error: {e}")
 
     logger.info(f"Shutdown {settings.SERVICE_NAME} v{settings.SERVICE_VERSION}")
+
 
 app = FastAPI(
     lifespan=lifespan

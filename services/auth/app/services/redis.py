@@ -39,11 +39,11 @@ class RedisService:
             self._initialized = False
 
     async def store_refresh_token(
-        self,
-        user_id: UUID,
-        token_id: str,
-        token_value: str,
-        ttl: Optional[timedelta] = None,
+            self,
+            user_id: UUID,
+            token_id: str,
+            token_value: str,
+            ttl: Optional[timedelta] = None,
     ) -> bool:
         if not self._initialized:
             await self.initialize()

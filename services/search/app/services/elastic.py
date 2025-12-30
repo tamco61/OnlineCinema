@@ -4,7 +4,6 @@ from elasticsearch import AsyncElasticsearch
 
 from app.core.config import settings
 
-
 logger = logging.getLogger(__name__)
 
 MOVIES_INDEX_MAPPING = {

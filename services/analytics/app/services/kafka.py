@@ -105,13 +105,13 @@ class ViewingEventsConsumer:
             return "unknown"
 
     async def _insert_viewing_event(
-        self,
-        user_id: str,
-        movie_id: str,
-        event_type: str,
-        position_seconds: int,
-        event_time: str,
-        metadata: str
+            self,
+            user_id: str,
+            movie_id: str,
+            event_type: str,
+            position_seconds: int,
+            event_time: str,
+            metadata: str
     ):
         try:
             if 'T' in event_time:

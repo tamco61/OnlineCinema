@@ -44,7 +44,6 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = Field(default="INFO", description="Logging level")
     JSON_LOGS: bool = Field(default=True, description="Enable JSON logging")
 
-
     CORS_ORIGINS: list[str] = Field(
         default=["http://localhost:3000", "http://localhost:8080"],
         description="CORS allowed origins",

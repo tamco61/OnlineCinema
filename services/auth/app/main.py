@@ -9,7 +9,6 @@ from app.db.session import init_db, close_db
 from app.api.router import router
 from app.services.redis import redis_service
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -32,6 +31,7 @@ async def lifespan(app: FastAPI):
     await close_db()
     print(f"Shutdown {settings.SERVICE_NAME} v{settings.SERVICE_VERSION}")
 
+
 app = FastAPI(
     lifespan=lifespan
 )
@@ -46,6 +46,7 @@ app.add_middleware(
 
 app.include_router(router)
 
+
 @app.get("/health", tags=["Health"])
 async def health_check():
     return {
@@ -58,11 +59,12 @@ async def health_check():
 
 @app.get("/", tags=["Root"])
 async def root():
-    return{
+    return {
         "service": settings.SERVICE_NAME,
         "version": settings.SERVICE_VERSION,
         "docs": "/docs"
     }
+
 
 if __name__ == "__main__":
     import uvicorn

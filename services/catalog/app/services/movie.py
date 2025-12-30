@@ -15,21 +15,21 @@ from app.db.session import get_db
 
 class MovieService:
     def __init__(
-        self,
-        db: AsyncSession,
-        kafka: KafkaProducerService,
-        redis: RedisService,
+            self,
+            db: AsyncSession,
+            kafka: KafkaProducerService,
+            redis: RedisService,
     ):
         self.db = db
         self.kafka = kafka
         self.redis = redis
 
     async def get_movies(
-        self,
-        page: int = 1,
-        page_size: int = 20,
-        published_only: bool = True,
-        search: str | None = None,
+            self,
+            page: int = 1,
+            page_size: int = 20,
+            published_only: bool = True,
+            search: str | None = None,
     ) -> tuple[list[Movie], int]:
         query = select(Movie)
 
@@ -194,8 +194,8 @@ class MovieService:
 
 
 async def get_movie_service(
-    db: AsyncSession = Depends(get_db),
-    kafka: KafkaProducerService = Depends(get_kafka_producer),
-    redis: RedisService = Depends(get_redis_service),
+        db: AsyncSession = Depends(get_db),
+        kafka: KafkaProducerService = Depends(get_kafka_producer),
+        redis: RedisService = Depends(get_redis_service),
 ) -> MovieService:
     return MovieService(db, kafka, redis)

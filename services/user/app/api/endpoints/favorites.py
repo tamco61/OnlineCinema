@@ -12,10 +12,10 @@ router = APIRouter()
 
 @router.get("/me/favorites", response_model=list[FavoriteResponse], tags=["Favorites"])
 async def get_favorites(
-    limit: int = Query(default=100, ge=1, le=500),
-    user_id: UUID = Depends(get_current_user_id),
-    user_service: UserService = Depends(get_user_service),
-    favorites_service: FavoritesService = Depends(get_favorites_service),
+        limit: int = Query(default=100, ge=1, le=500),
+        user_id: UUID = Depends(get_current_user_id),
+        user_service: UserService = Depends(get_user_service),
+        favorites_service: FavoritesService = Depends(get_favorites_service),
 ):
     profile = await user_service.get_or_create_profile(user_id)
 
@@ -24,13 +24,14 @@ async def get_favorites(
     return [FavoriteResponse.model_validate(f) for f in favorites]
 
 
-@router.post("/me/favorites/{content_id}", response_model=FavoriteResponse, status_code=status.HTTP_201_CREATED, tags=["Favorites"])
+@router.post("/me/favorites/{content_id}", response_model=FavoriteResponse, status_code=status.HTTP_201_CREATED,
+             tags=["Favorites"])
 async def add_to_favorites(
-    content_id: UUID,
-    content_type: str = Query(..., description="Content type: movie, series, etc."),
-    user_id: UUID = Depends(get_current_user_id),
-    user_service: UserService = Depends(get_user_service),
-    favorites_service: FavoritesService = Depends(get_favorites_service),
+        content_id: UUID,
+        content_type: str = Query(..., description="Content type: movie, series, etc."),
+        user_id: UUID = Depends(get_current_user_id),
+        user_service: UserService = Depends(get_user_service),
+        favorites_service: FavoritesService = Depends(get_favorites_service),
 ):
     profile = await user_service.get_or_create_profile(user_id)
 
@@ -43,10 +44,10 @@ async def add_to_favorites(
 
 @router.delete("/me/favorites/{content_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Favorites"])
 async def remove_from_favorites(
-    content_id: UUID,
-    user_id: UUID = Depends(get_current_user_id),
-    user_service: UserService = Depends(get_user_service),
-    favorites_service: FavoritesService = Depends(get_favorites_service),
+        content_id: UUID,
+        user_id: UUID = Depends(get_current_user_id),
+        user_service: UserService = Depends(get_user_service),
+        favorites_service: FavoritesService = Depends(get_favorites_service),
 ):
     profile = await user_service.get_or_create_profile(user_id)
 

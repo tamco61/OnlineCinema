@@ -17,17 +17,17 @@ router = APIRouter()
 
 @router.get("", response_model=SearchResponse)
 async def search_movies(
-    query: Optional[str] = Query(None, description="Search query"),
-    genres: Optional[str] = Query(None, description="Comma-separated genre slugs (e.g., 'action,drama')"),
-    year_from: Optional[int] = Query(None, ge=1900, le=2100, description="Minimum year"),
-    year_to: Optional[int] = Query(None, ge=1900, le=2100, description="Maximum year"),
-    rating_from: Optional[float] = Query(None, ge=0.0, le=10.0, description="Minimum rating"),
-    rating_to: Optional[float] = Query(None, ge=0.0, le=10.0, description="Maximum rating"),
-    age_rating: Optional[str] = Query(None, description="Comma-separated age ratings (e.g., 'PG,PG-13')"),
-    page: int = Query(1, ge=1, description="Page number"),
-    size: int = Query(20, ge=1, le=100, description="Page size"),
-    published_only: bool = Query(True, description="Show only published movies"),
-    search_service: SearchService = Depends(get_search_service)
+        query: Optional[str] = Query(None, description="Search query"),
+        genres: Optional[str] = Query(None, description="Comma-separated genre slugs (e.g., 'action,drama')"),
+        year_from: Optional[int] = Query(None, ge=1900, le=2100, description="Minimum year"),
+        year_to: Optional[int] = Query(None, ge=1900, le=2100, description="Maximum year"),
+        rating_from: Optional[float] = Query(None, ge=0.0, le=10.0, description="Minimum rating"),
+        rating_to: Optional[float] = Query(None, ge=0.0, le=10.0, description="Maximum rating"),
+        age_rating: Optional[str] = Query(None, description="Comma-separated age ratings (e.g., 'PG,PG-13')"),
+        page: int = Query(1, ge=1, description="Page number"),
+        size: int = Query(20, ge=1, le=100, description="Page size"),
+        published_only: bool = Query(True, description="Show only published movies"),
+        search_service: SearchService = Depends(get_search_service)
 ):
     genre_list = [g.strip() for g in genres.split(",")] if genres else None
     age_rating_list = [a.strip() for a in age_rating.split(",")] if age_rating else None
@@ -53,9 +53,9 @@ async def search_movies(
 
 @router.get("/suggest", response_model=SuggestResponse)
 async def autocomplete_movies(
-    query: str = Query(..., min_length=2, description="Search query (minimum 2 characters)"),
-    limit: int = Query(10, ge=1, le=20, description="Maximum number of suggestions"),
-    search_service: SearchService = Depends(get_search_service)
+        query: str = Query(..., min_length=2, description="Search query (minimum 2 characters)"),
+        limit: int = Query(10, ge=1, le=20, description="Maximum number of suggestions"),
+        search_service: SearchService = Depends(get_search_service)
 ):
     suggest_request = SuggestRequest(query=query, limit=limit)
 
@@ -67,7 +67,7 @@ async def autocomplete_movies(
 
 @router.get("/health")
 async def health_check(
-    es_client: AsyncElasticsearch = Depends(get_es_client)
+        es_client: AsyncElasticsearch = Depends(get_es_client)
 ):
     try:
         is_alive = await es_client.ping()

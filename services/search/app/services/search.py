@@ -291,7 +291,7 @@ class SearchService:
 
 
 async def get_search_service(
-    es_client: AsyncElasticsearch = Depends(get_es_client),
-    redis: RedisService = Depends(get_redis)
+        es_client: AsyncElasticsearch = Depends(get_es_client),
+        redis: RedisService = Depends(get_redis)
 ) -> SearchService:
     return SearchService(es_client, redis)

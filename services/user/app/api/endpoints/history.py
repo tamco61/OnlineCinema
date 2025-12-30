@@ -12,10 +12,10 @@ router = APIRouter()
 
 @router.get("/me/history", response_model=list[WatchHistoryResponse], tags=["History"])
 async def get_watch_history(
-    limit: int = Query(default=50, ge=1, le=100),
-    user_id: UUID = Depends(get_current_user_id),
-    user_service: UserService = Depends(get_user_service),
-    history_service: HistoryService = Depends(get_history_service),
+        limit: int = Query(default=50, ge=1, le=100),
+        user_id: UUID = Depends(get_current_user_id),
+        user_service: UserService = Depends(get_user_service),
+        history_service: HistoryService = Depends(get_history_service),
 ):
     profile = await user_service.get_or_create_profile(user_id)
 
@@ -26,10 +26,10 @@ async def get_watch_history(
 
 @router.post("/me/history", response_model=WatchHistoryResponse, tags=["History"])
 async def update_watch_progress(
-    progress_data: WatchHistoryUpdate,
-    user_id: UUID = Depends(get_current_user_id),
-    user_service: UserService = Depends(get_user_service),
-    history_service: HistoryService = Depends(get_history_service),
+        progress_data: WatchHistoryUpdate,
+        user_id: UUID = Depends(get_current_user_id),
+        user_service: UserService = Depends(get_user_service),
+        history_service: HistoryService = Depends(get_history_service),
 ):
     profile = await user_service.get_or_create_profile(user_id)
 

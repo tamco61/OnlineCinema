@@ -78,7 +78,7 @@ class UserService:
         return profile
 
     async def update_profile(
-        self, user_id: uuid.UUID, data: UserProfileUpdate
+            self, user_id: uuid.UUID, data: UserProfileUpdate
     ) -> UserProfile:
         """Update user profile."""
         profile = await self.get_profile_by_user_id(user_id)
@@ -116,7 +116,7 @@ class UserService:
 
 
 async def get_user_service(
-    db: AsyncSession = Depends(get_db),
-    cache: RedisService = Depends(get_redis_service),
+        db: AsyncSession = Depends(get_db),
+        cache: RedisService = Depends(get_redis_service),
 ) -> UserService:
     return UserService(db, cache)

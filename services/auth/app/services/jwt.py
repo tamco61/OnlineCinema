@@ -15,9 +15,9 @@ class JWTService:
         self.refresh_token_expire_days = settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS
 
     def create_access_token(
-        self,
-        user_id: UUID,
-        additional_claims: Optional[dict[str, Any]]=None
+            self,
+            user_id: UUID,
+            additional_claims: Optional[dict[str, Any]] = None
     ) -> tuple[str, int]:
         now = datetime.now()
         expires_delta = timedelta(minutes=self.access_token_expire_minutes)
@@ -45,8 +45,8 @@ class JWTService:
         return token, expires_in
 
     def create_refresh_token(
-        self,
-        user_id: UUID
+            self,
+            user_id: UUID
     ) -> tuple[str, str, int]:
         now = datetime.now()
         expires_delta = timedelta(days=self.refresh_token_expire_days)

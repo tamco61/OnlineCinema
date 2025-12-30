@@ -35,10 +35,10 @@ class KafkaProducerService:
             self._initialized = False
 
     async def publish_event(
-        self,
-        topic: str,
-        event_data: dict[str, Any],
-        key: Optional[str] = None,
+            self,
+            topic: str,
+            event_data: dict[str, Any],
+            key: Optional[str] = None,
     ) -> None:
         if not settings.ENABLE_KAFKA or not self._initialized:
             print(f"[Kafka disabled] Would publish to {topic}: {event_data}")

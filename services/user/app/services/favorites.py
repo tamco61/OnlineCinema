@@ -14,7 +14,7 @@ class FavoritesService:
         self.db = db
 
     async def get_user_favorites(
-        self, profile_id: UUID, limit: int = 100
+            self, profile_id: UUID, limit: int = 100
     ) -> list[Favorite]:
         result = await self.db.execute(
             select(Favorite)
@@ -25,7 +25,7 @@ class FavoritesService:
         return list(result.scalars().all())
 
     async def add_favorite(
-        self, profile_id: UUID, content_id: UUID, content_type: str
+            self, profile_id: UUID, content_id: UUID, content_type: str
     ) -> Favorite:
         existing = await self.is_favorite(profile_id, content_id)
         if existing:
@@ -55,7 +55,7 @@ class FavoritesService:
         return favorite
 
     async def remove_favorite(
-        self, profile_id: UUID, content_id: UUID
+            self, profile_id: UUID, content_id: UUID
     ) -> bool:
         result = await self.db.execute(
             select(Favorite).where(
@@ -78,7 +78,7 @@ class FavoritesService:
         return True
 
     async def is_favorite(
-        self, profile_id: UUID, content_id: UUID
+            self, profile_id: UUID, content_id: UUID
     ) -> bool:
         result = await self.db.execute(
             select(Favorite).where(
@@ -92,6 +92,6 @@ class FavoritesService:
 
 
 async def get_favorites_service(
-    db: AsyncSession = Depends(get_db),
+        db: AsyncSession = Depends(get_db),
 ) -> FavoritesService:
     return FavoritesService(db)

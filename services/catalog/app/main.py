@@ -34,6 +34,7 @@ async def lifespan(app: FastAPI):
 
     logger.info(f"Shutdown {settings.SERVICE_NAME} v{settings.SERVICE_VERSION}")
 
+
 app = FastAPI(
     lifespan=lifespan
 )
@@ -45,6 +46,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 @app.get("/health")
 async def health():
@@ -60,4 +62,10 @@ app.include_router(router)
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app.main:app", host=settings.HOST, port=settings.PORT, reload=settings.RELOAD)
+
+    uvicorn.run(
+        "app.main:app",
+        host=settings.HOST,
+        port=settings.PORT,
+        reload=settings.RELOAD
+    )

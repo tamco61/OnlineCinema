@@ -13,7 +13,6 @@ from app.schemas.streaming import (
     WatchProgressResponse
 )
 
-
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -37,12 +36,12 @@ async def get_current_user_id(access_token: str = Depends(get_access_token)) -> 
 
 @router.post("/{movie_id}", response_model=StreamResponse)
 async def start_streaming(
-    movie_id: str,
-    request_body: StreamRequest,
-    request: Request,
-    user_id: str = Depends(get_current_user_id),
-    access_token: str = Depends(get_access_token),
-    streaming_service: StreamingService = Depends(get_streaming_service)
+        movie_id: str,
+        request_body: StreamRequest,
+        request: Request,
+        user_id: str = Depends(get_current_user_id),
+        access_token: str = Depends(get_access_token),
+        streaming_service: StreamingService = Depends(get_streaming_service)
 ):
     has_access, reason = await streaming_service.check_access(user_id, access_token)
 
@@ -78,10 +77,10 @@ async def start_streaming(
 
 @router.post("/{movie_id}/progress", response_model=ProgressUpdateResponse)
 async def update_watch_progress(
-    movie_id: str,
-    progress: ProgressUpdateRequest,
-    user_id: str = Depends(get_current_user_id),
-    streaming_service: StreamingService = Depends(get_streaming_service)
+        movie_id: str,
+        progress: ProgressUpdateRequest,
+        user_id: str = Depends(get_current_user_id),
+        streaming_service: StreamingService = Depends(get_streaming_service)
 ):
     try:
         await streaming_service.update_progress(
@@ -102,9 +101,9 @@ async def update_watch_progress(
 
 @router.get("/{movie_id}/progress", response_model=WatchProgressResponse)
 async def get_watch_progress(
-    movie_id: str,
-    user_id: str = Depends(get_current_user_id),
-    streaming_service: StreamingService = Depends(get_streaming_service)
+        movie_id: str,
+        user_id: str = Depends(get_current_user_id),
+        streaming_service: StreamingService = Depends(get_streaming_service)
 ):
     try:
         position = await streaming_service.get_progress(user_id, movie_id)
@@ -122,10 +121,10 @@ async def get_watch_progress(
 
 @router.post("/{movie_id}/stop")
 async def stop_streaming(
-    movie_id: str,
-    progress: ProgressUpdateRequest,
-    user_id: str = Depends(get_current_user_id),
-    streaming_service: StreamingService = Depends(get_streaming_service)
+        movie_id: str,
+        progress: ProgressUpdateRequest,
+        user_id: str = Depends(get_current_user_id),
+        streaming_service: StreamingService = Depends(get_streaming_service)
 ):
     try:
         await streaming_service.end_stream(

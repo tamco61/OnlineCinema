@@ -18,12 +18,12 @@ logger = logging.getLogger(__name__)
 
 class StreamingService:
     def __init__(
-        self,
-        db: AsyncSession,
-        s3: S3Client,
-        user_client: UserServiceClient,
-        kafka: KafkaEventProducer,
-        cache: RedisCache
+            self,
+            db: AsyncSession,
+            s3: S3Client,
+            user_client: UserServiceClient,
+            kafka: KafkaEventProducer,
+            cache: RedisCache
     ):
         self.db = db
         self.s3 = s3
@@ -43,12 +43,12 @@ class StreamingService:
         return True, "Access granted"
 
     async def start_stream(
-        self,
-        user_id: str,
-        movie_id: str,
-        manifest_type: str = "hls",
-        user_agent: str = None,
-        ip_address: str = None
+            self,
+            user_id: str,
+            movie_id: str,
+            manifest_type: str = "hls",
+            user_agent: str = None,
+            ip_address: str = None
     ) -> str:
         manifest_url = self.s3.get_manifest_url(movie_id, manifest_type)
 
@@ -140,10 +140,10 @@ class StreamingService:
 
 
 async def get_streaming_service(
-    db: AsyncSession = Depends(get_db),
-    s3_client: S3Client = Depends(get_s3_client),
-    cache: RedisCache = Depends(get_cache),
-    kafka_producer: KafkaEventProducer = Depends(get_kafka_producer),
-    user_client: UserServiceClient = Depends(get_user_service_client)
+        db: AsyncSession = Depends(get_db),
+        s3_client: S3Client = Depends(get_s3_client),
+        cache: RedisCache = Depends(get_cache),
+        kafka_producer: KafkaEventProducer = Depends(get_kafka_producer),
+        user_client: UserServiceClient = Depends(get_user_service_client)
 ) -> StreamingService:
     return StreamingService(db, s3_client, user_client, kafka_producer, cache)

@@ -16,7 +16,7 @@ class HistoryService:
         self.db = db
 
     async def get_user_history(
-        self, profile_id: UUID, limit: int = 50
+            self, profile_id: UUID, limit: int = 50
     ) -> list[WatchHistory]:
         result = await self.db.execute(
             select(WatchHistory)
@@ -27,7 +27,7 @@ class HistoryService:
         return list(result.scalars().all())
 
     async def update_progress(
-        self, profile_id: UUID, data: WatchHistoryUpdate
+            self, profile_id: UUID, data: WatchHistoryUpdate
     ) -> WatchHistory:
         result = await self.db.execute(
             select(WatchHistory).where(
@@ -61,7 +61,7 @@ class HistoryService:
         return history
 
     async def get_content_progress(
-        self, profile_id: UUID, content_id: UUID
+            self, profile_id: UUID, content_id: UUID
     ) -> WatchHistory | None:
         result = await self.db.execute(
             select(WatchHistory).where(
@@ -74,5 +74,5 @@ class HistoryService:
         return result.scalar_one_or_none()
 
 
-async def get_history_service(db: AsyncSession=Depends(get_db)) -> HistoryService:
+async def get_history_service(db: AsyncSession = Depends(get_db)) -> HistoryService:
     return HistoryService(db)
