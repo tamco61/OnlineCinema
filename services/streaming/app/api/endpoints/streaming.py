@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Header, Request
-from app.core.security import verify_access_token
-from app.core.config import settings
-from app.services.streaming import StreamingService, get_streaming_service
-from app.schemas.streaming import (
+from services.streaming.app.core.security import verify_access_token
+from services.streaming.app.core.config import settings
+from services.streaming.app.services.streaming import StreamingService, get_streaming_service
+from services.streaming.app.schemas.streaming import (
     StreamRequest,
     StreamResponse,
     ProgressUpdateRequest,

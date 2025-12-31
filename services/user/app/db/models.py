@@ -16,7 +16,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.session import Base
+from services.user.app.db.session import Base
 
 
 class SubscriptionStatus(str, enum.Enum):

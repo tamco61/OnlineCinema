@@ -1,9 +1,11 @@
+import time
+
 from elasticsearch import AsyncElasticsearch
-from app.core.config import settings
-from app.services.elastic import get_es_client
-from app.services.redis import RedisService, get_redis
+from services.search.app.core.config import settings
+from services.search.app.services.elastic import get_es_client
+from services.search.app.services.redis import RedisService, get_redis
 from fastapi import Depends
-from app.schemas.search import (
+from services.search.app.schemas.search import (
     SearchRequest,
     SearchResponse,
     MovieSearchResult,
@@ -11,8 +13,13 @@ from app.schemas.search import (
     SuggestResponse,
     SuggestionItem
 )
+
+from shared.utils.telemetry.metrics import counter, histogram
+
 import logging
 import math
+
+from shared.utils.telemetry.tracer import trace_span
 
 logger = logging.getLogger(__name__)
 
@@ -23,31 +30,31 @@ class SearchService:
         self.redis = redis
 
     async def search_movies(self, search_request: SearchRequest) -> SearchResponse:
-        filters = {
-            "genres": search_request.genres,
-            "year_from": search_request.year_from,
-            "year_to": search_request.year_to,
-            "rating_from": search_request.rating_from,
-            "rating_to": search_request.rating_to,
-            "age_rating": search_request.age_rating,
-            "published_only": search_request.published_only,
-            "page": search_request.page,
-            "size": search_request.size
-        }
-        query_hash = self.redis.generate_query_hash(
-            search_request.query or "",
-            filters
-        )
+        async with trace_span("search_movies"):
+            start = time.time()
 
-        redis_result = await self.redis.get_search_results(query_hash)
-        if redis_result:
-            return SearchResponse(**redis_result)
+            filters = {
+                "genres": search_request.genres,
+                "year_from": search_request.year_from,
+                "year_to": search_request.year_to,
+                "rating_from": search_request.rating_from,
+                "rating_to": search_request.rating_to,
+                "age_rating": search_request.age_rating,
+                "published_only": search_request.published_only,
+                "page": search_request.page,
+                "size": search_request.size
+            }
 
-        es_query = self._build_search_query(search_request)
+            query_hash = self.redis.generate_query_hash(search_request.query or "", filters)
+            redis_result = await self.redis.get_search_results(query_hash)
+            if redis_result:
+                counter("es_queries_total").add(1)
+                histogram("es_query_duration_seconds").record(time.time() - start)
+                return SearchResponse(**redis_result)
 
-        from_index = (search_request.page - 1) * search_request.size
+            from_index = (search_request.page - 1) * search_request.size
+            es_query = self._build_search_query(search_request)
 
-        try:
             response = await self.es.search(
                 index=settings.ELASTICSEARCH_INDEX,
                 body=es_query,
@@ -57,12 +64,7 @@ class SearchService:
 
             hits = response["hits"]["hits"]
             total = response["hits"]["total"]["value"]
-
-            results = [
-                self._parse_movie_hit(hit)
-                for hit in hits
-            ]
-
+            results = [self._parse_movie_hit(hit) for hit in hits]
             total_pages = math.ceil(total / search_request.size)
 
             search_response = SearchResponse(
@@ -73,16 +75,11 @@ class SearchService:
                 total_pages=total_pages
             )
 
-            await self.redis.set_search_results(
-                query_hash,
-                search_response.model_dump()
-            )
+            await self.redis.set_search_results(query_hash, search_response.model_dump())
 
+            counter("es_queries_total").add(1)
+            histogram("es_query_duration_seconds").record(time.time() - start)
             return search_response
-
-        except Exception as e:
-            logger.error(f"Search error: {e}")
-            raise
 
     def _build_search_query(self, req: SearchRequest) -> dict:
         must_clauses = []
@@ -112,9 +109,7 @@ class SearchService:
             filter_clauses.append({
                 "nested": {
                     "path": "genres",
-                    "query": {
-                        "terms": {"genres.slug": req.genres}
-                    }
+                    "query": {"terms": {"genres.slug": req.genres}}
                 }
             })
 
@@ -138,62 +133,34 @@ class SearchService:
             filter_clauses.append({"terms": {"age_rating": req.age_rating}})
 
         if not must_clauses:
-            query = {
-                "query": {
-                    "bool": {
-                        "filter": filter_clauses
-                    }
-                },
-                "sort": [
-                    {"rating": {"order": "desc"}},
-                    {"year": {"order": "desc"}}
-                ]
-            }
+            query = {"query": {"bool": {"filter": filter_clauses}},
+                     "sort": [{"rating": {"order": "desc"}}, {"year": {"order": "desc"}}]}
         else:
-            query = {
-                "query": {
-                    "bool": {
-                        "must": must_clauses,
-                        "filter": filter_clauses
-                    }
-                }
-            }
+            query = {"query": {"bool": {"must": must_clauses, "filter": filter_clauses}}}
 
         return query
 
     async def autocomplete(self, suggest_request: SuggestRequest) -> SuggestResponse:
-        try:
+        async with trace_span("autocomplete_movies"):
+            start = time.time()
             response = await self.es.search(
                 index=settings.ELASTICSEARCH_INDEX,
                 body={
                     "query": {
                         "bool": {
                             "must": [
-                                {
-                                    "match": {
-                                        "title": {
-                                            "query": suggest_request.query,
-                                            "operator": "and"
-                                        }
-                                    }
-                                }
+                                {"match": {"title": {"query": suggest_request.query, "operator": "and"}}}
                             ],
-                            "filter": [
-                                {"term": {"is_published": True}}
-                            ]
+                            "filter": [{"term": {"is_published": True}}]
                         }
                     },
-                    "sort": [
-                        "_score",
-                        {"rating": {"order": "desc"}}
-                    ],
+                    "sort": ["_score", {"rating": {"order": "desc"}}],
                     "_source": ["movie_id", "title", "year", "poster_url"]
                 },
                 size=suggest_request.limit
             )
 
             hits = response["hits"]["hits"]
-
             suggestions = [
                 SuggestionItem(
                     movie_id=hit["_source"]["movie_id"],
@@ -204,15 +171,12 @@ class SearchService:
                 for hit in hits
             ]
 
+            counter("es_queries_total").add(1)
+            histogram("es_query_duration_seconds").record(time.time() - start)
             return SuggestResponse(suggestions=suggestions)
-
-        except Exception as e:
-            logger.error(f"Autocomplete error: {e}")
-            raise
 
     def _parse_movie_hit(self, hit: dict) -> MovieSearchResult:
         source = hit["_source"]
-
         return MovieSearchResult(
             movie_id=source["movie_id"],
             title=source["title"],
@@ -232,7 +196,8 @@ class SearchService:
         )
 
     async def index_movie(self, movie_data: dict):
-        try:
+        async with trace_span("index_movie"):
+            start = time.time()
             movie_id = movie_data["movie_id"]
 
             await self.es.index(
@@ -241,22 +206,16 @@ class SearchService:
                 document=movie_data
             )
 
+            await self.redis.invalidate_movie(movie_id)
             logger.info(f"Indexed movie: {movie_id}")
 
-            await self.redis.invalidate_movie(movie_id)
-
-        except Exception as e:
-            logger.error(f"Indexing error for movie {movie_data.get('movie_id')}: {e}")
-            raise
+            counter("es_queries_total").add(1)
+            histogram("es_query_duration_seconds").record(time.time() - start)
 
     async def update_movie_publish_status(self, movie_id: str, is_published: bool, published_at: str = None):
-        try:
-            update_body = {
-                "doc": {
-                    "is_published": is_published,
-                    "published_at": published_at
-                }
-            }
+        async with trace_span("update_movie_publish_status"):
+            start = time.time()
+            update_body = {"doc": {"is_published": is_published, "published_at": published_at}}
 
             await self.es.update(
                 index=settings.ELASTICSEARCH_INDEX,
@@ -264,28 +223,21 @@ class SearchService:
                 body=update_body
             )
 
+            await self.redis.invalidate_movie(movie_id)
             logger.info(f"Updated publish status for movie: {movie_id}")
 
-            # Invalidate search redis
-            await self.redis.invalidate_movie(movie_id)
-
-        except Exception as e:
-            logger.error(f"Update error for movie {movie_id}: {e}")
-            raise
+            counter("es_queries_total").add(1)
+            histogram("es_query_duration_seconds").record(time.time() - start)
 
     async def delete_movie(self, movie_id: str):
-        try:
-            await self.es.delete(
-                index=settings.ELASTICSEARCH_INDEX,
-                id=movie_id
-            )
-
+        async with trace_span("delete_movie"):
+            start = time.time()
+            await self.es.delete(index=settings.ELASTICSEARCH_INDEX, id=movie_id)
+            await self.redis.invalidate_movie(movie_id)
             logger.info(f"Deleted movie: {movie_id}")
 
-            await self.redis.invalidate_movie(movie_id)
-
-        except Exception as e:
-            logger.error(f"Delete error for movie {movie_id}: {e}")
+            counter("es_queries_total").add(1)
+            histogram("es_query_duration_seconds").record(time.time() - start)
 
 
 async def get_search_service(

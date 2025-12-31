@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from elasticsearch import AsyncElasticsearch
 from typing import Optional
-from app.services.elastic import get_es_client
-from app.services.search import SearchService, get_search_service
-from app.schemas.search import (
+from services.search.app.services.elastic import get_es_client
+from services.search.app.services.search import SearchService, get_search_service
+from services.search.app.schemas.search import (
     SearchRequest,
     SearchResponse,
     SuggestRequest,

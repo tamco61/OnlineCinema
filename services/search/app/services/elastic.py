@@ -1,6 +1,11 @@
+import time
+
 from elasticsearch import AsyncElasticsearch
-from app.core.config import settings
+from services.search.app.core.config import settings
 import logging
+
+from shared.utils.telemetry.metrics import counter, histogram
+from shared.utils.telemetry.tracer import trace_span
 
 logger = logging.getLogger(__name__)
 
@@ -139,44 +144,46 @@ class ElasticsearchClient:
         self.client: AsyncElasticsearch | None = None
 
     async def connect(self):
-        try:
-            self.client = AsyncElasticsearch(
-                hosts=settings.ELASTICSEARCH_HOSTS,
-                request_timeout=settings.ELASTICSEARCH_TIMEOUT,
-                max_retries=settings.ELASTICSEARCH_MAX_RETRIES,
-                retry_on_timeout=True
-            )
+        async with trace_span("es_connect"):
+            try:
+                self.client = AsyncElasticsearch(
+                    hosts=settings.ELASTICSEARCH_HOSTS,
+                    request_timeout=settings.ELASTICSEARCH_TIMEOUT,
+                    max_retries=settings.ELASTICSEARCH_MAX_RETRIES,
+                    retry_on_timeout=True
+                )
 
-            if await self.client.ping():
-                logger.info("Connected to Elasticsearch")
-
-                await self.ensure_index()
-            else:
-                logger.error("Failed to ping Elasticsearch")
-        except Exception as e:
-            logger.error(f"Elasticsearch connection error: {e}")
-            raise
+                if await self.client.ping():
+                    logger.info("Connected to Elasticsearch")
+                    await self.ensure_index()
+                else:
+                    logger.error("Failed to ping Elasticsearch")
+            except Exception as e:
+                logger.error(f"Elasticsearch connection error: {e}")
+                raise
 
     async def ensure_index(self):
-        try:
-            index_exists = await self.client.indices.exists(index=settings.ELASTICSEARCH_INDEX)
-
-            if not index_exists:
-                await self.client.indices.create(
-                    index=settings.ELASTICSEARCH_INDEX,
-                    body=MOVIES_INDEX_MAPPING
-                )
-                logger.info(f"Created index: {settings.ELASTICSEARCH_INDEX}")
-            else:
-                logger.info(f"Index already exists: {settings.ELASTICSEARCH_INDEX}")
-        except Exception as e:
-            logger.error(f"Error creating index: {e}")
-            raise
+        async with trace_span("es_ensure_index"):
+            start_time = time.time()
+            counter("es_queries_total").add(1)
+            try:
+                index_exists = await self.client.indices.exists(index=settings.ELASTICSEARCH_INDEX)
+                if not index_exists:
+                    await self.client.indices.create(index=settings.ELASTICSEARCH_INDEX, body=MOVIES_INDEX_MAPPING)
+                    logger.info(f"Created index: {settings.ELASTICSEARCH_INDEX}")
+                else:
+                    logger.info(f"Index already exists: {settings.ELASTICSEARCH_INDEX}")
+            except Exception as e:
+                logger.error(f"Error creating index: {e}")
+                raise
+            finally:
+                histogram("es_query_duration_seconds").record(time.time() - start_time)
 
     async def close(self):
-        if self.client:
-            await self.client.close()
-            logger.info("Elasticsearch connection closed")
+        async with trace_span("es_close"):
+            if self.client:
+                await self.client.close()
+                logger.info("Elasticsearch connection closed")
 
     def get_client(self) -> AsyncElasticsearch:
         if not self.client:

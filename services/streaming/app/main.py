@@ -5,12 +5,15 @@ from contextlib import asynccontextmanager
 import logging
 
 # local module
-from app.core.config import settings
-from app.api.endpoints.streaming import router
+from services.streaming.app.core.config import settings
+from services.streaming.app.api.endpoints.streaming import router
 
-from app.services.s3 import s3_client
-from app.services.kafka import kafka
-from app.services.redis import cache
+from services.streaming.app.services.s3 import s3_client
+from services.streaming.app.services.kafka import kafka
+from services.streaming.app.services.redis import cache
+from shared.utils.telemetry.metrics import init_metrics
+
+from shared.utils.telemetry.tracer import setup_telemetry
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +36,15 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     lifespan=lifespan
 )
+
+setup_telemetry(
+    app=app,
+    service_name=settings.SERVICE_NAME,
+    service_version=settings.SERVICE_VERSION,
+    environment=settings.ENVIRONMENT,
+    otlp_endpoint=settings.OTEL_COLLECTOR_ENDPOINT,
+)
+init_metrics()
 
 app.add_middleware(
     CORSMiddleware,

@@ -1,6 +1,6 @@
 import jwt
 from datetime import datetime
-from app.core.config import settings
+from services.streaming.app.core.config import settings
 import logging
 import uuid
 

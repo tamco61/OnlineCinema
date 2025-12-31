@@ -7,13 +7,13 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.services.redis import RedisCache, get_cache
-from app.services.s3 import S3Client, get_s3_client
-from app.services.kafka import KafkaEventProducer, get_kafka_producer
-from app.services.user_client import UserServiceClient, get_user_service_client
+from services.streaming.app.services.redis import RedisCache, get_cache
+from services.streaming.app.services.s3 import S3Client, get_s3_client
+from services.streaming.app.services.kafka import KafkaEventProducer, get_kafka_producer
+from services.streaming.app.services.user_client import UserServiceClient, get_user_service_client
 
-from app.db.models import StreamSession, WatchProgress
-from app.db.session import get_db
+from services.streaming.app.db.models import StreamSession, WatchProgress
+from services.streaming.app.db.session import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -67,15 +67,18 @@ class StreamingService:
 
         logger.info(f"Started stream session: user={user_id}, movie={movie_id}")
 
+        # Kafka метрики будут учитываться внутри publish_stream_start
         await self.kafka.publish_stream_start(user_id, movie_id)
 
         return manifest_url
 
     async def update_progress(self, user_id: str, movie_id: str, position_seconds: int):
+        # Кэш обновляем и учитываем метрики
         await self.cache.set_watch_progress(user_id, movie_id, position_seconds)
 
         await self._sync_progress_to_db(user_id, movie_id, position_seconds)
 
+        # Kafka метрики учитываются внутри publish_progress_update
         await self.kafka.publish_progress_update(user_id, movie_id, position_seconds)
 
         logger.debug(f"Updated progress: user={user_id}, movie={movie_id}, position={position_seconds}s")
@@ -112,21 +115,22 @@ class StreamingService:
 
             progress = result.scalar_one_or_none()
 
+            now = datetime.now()
+
             if progress:
                 progress.position_seconds = position_seconds
-                progress.updated_at = datetime.now()
-                progress.last_watched_at = datetime.now()
+                progress.updated_at = now
+                progress.last_watched_at = now
             else:
                 progress = WatchProgress(
                     user_id=uuid.UUID(user_id),
                     movie_id=uuid.UUID(movie_id),
                     position_seconds=position_seconds,
-                    last_watched_at=datetime.now()
+                    last_watched_at=now
                 )
                 self.db.add(progress)
 
             await self.db.commit()
-
             logger.debug(f"Synced progress to DB: user={user_id}, movie={movie_id}")
 
         except Exception as e:
@@ -136,10 +140,10 @@ class StreamingService:
     async def end_stream(self, user_id: str, movie_id: str, position_seconds: int):
         await self.update_progress(user_id, movie_id, position_seconds)
 
+        # Kafka метрики учитываются внутри publish_stream_stop
         await self.kafka.publish_stream_stop(user_id, movie_id, position_seconds)
 
         logger.info(f"Ended stream: user={user_id}, movie={movie_id}, final_position={position_seconds}s")
-
 
 async def get_streaming_service(
     db: AsyncSession = Depends(get_db),
