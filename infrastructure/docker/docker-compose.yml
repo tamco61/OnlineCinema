@@ -1,0 +1,559 @@
+version: '3.8'
+
+# ===========================================
+# Profiles:
+#   - core: PostgreSQL, Redis (minimal)
+#   - messaging: Kafka, Zookeeper
+#   - search: Elasticsearch
+#   - analytics: ClickHouse
+#   - storage: MinIO
+#   - monitoring: Prometheus, Grafana, Jaeger
+#   - services: All microservices
+#   - gateway: NGINX
+#
+# Usage:
+#   docker compose --profile core up -d
+#   docker compose --profile core --profile messaging up -d
+# ===========================================
+
+services:
+  # ===========================================
+  # DATABASES & STORAGE
+  # ===========================================
+
+  # PostgreSQL - Main Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: cinema-postgres
+    profiles: ["core", "auth", "user", "catalog", "streaming"]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cinema_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cinema_password}
+      POSTGRES_MULTIPLE_DATABASES: auth_db,user_db,catalog_db,streaming_db
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts/init-multi-db.sh:/docker-entrypoint-initdb.d/init-multi-db.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cinema_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cinema-backend
+    restart: unless-stopped
+
+  # Redis - Caching & Sessions
+  redis:
+    image: redis:7-alpine
+    container_name: cinema-redis
+    profiles: ["core", "auth", "user", "catalog", "search", "streaming"]
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_password}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_password}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - cinema-backend
+    restart: unless-stopped
+
+  # Elasticsearch - Search Engine
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: cinema-elasticsearch
+    profiles: ["search", "full"]
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - cluster.name=cinema-cluster
+    ports:
+      - "${ELASTICSEARCH_PORT:-9200}:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - cinema-backend
+    restart: unless-stopped
+
+  # ClickHouse - Analytics Database
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: cinema-clickhouse
+    profiles: ["analytics", "full"]
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-analytics}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ports:
+      - "${CLICKHOUSE_HTTP_PORT:-8123}:8123"
+      - "${CLICKHOUSE_NATIVE_PORT:-9000}:9000"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cinema-backend
+    restart: unless-stopped
+
+  # MinIO - S3-Compatible Object Storage
+  minio:
+    image: minio/minio:latest
+    container_name: cinema-minio
+    profiles: ["storage", "streaming", "full"]
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio_dev_password}
+    ports:
+      - "${MINIO_API_PORT:-9002}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - cinema-backend
+    restart: unless-stopped
+
+  # MinIO Initialization - Create buckets
+  minio-init:
+    image: minio/mc:latest
+    container_name: cinema-minio-init
+    profiles: ["storage", "streaming", "full"]
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5;
+      /usr/bin/mc alias set myminio http://minio:9000 ${MINIO_ROOT_USER:-minio} ${MINIO_ROOT_PASSWORD:-minio_dev_password};
+      /usr/bin/mc mb myminio/videos --ignore-existing;
+      /usr/bin/mc mb myminio/thumbnails --ignore-existing;
+      /usr/bin/mc mb myminio/uploads --ignore-existing;
+      /usr/bin/mc anonymous set download myminio/videos;
+      /usr/bin/mc anonymous set download myminio/thumbnails;
+      echo 'MinIO buckets created successfully';
+      "
+    networks:
+      - cinema-backend
+
+  # ===========================================
+  # MESSAGE QUEUE
+  # ===========================================
+
+  # Zookeeper - Kafka Coordination
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: cinema-zookeeper
+    profiles: ["messaging", "catalog", "search", "analytics", "streaming", "full"]
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "${ZOOKEEPER_PORT:-2181}:2181"
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_logs:/var/lib/zookeeper/log
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cinema-backend
+    restart: unless-stopped
+
+  # Kafka - Message Broker
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: cinema-kafka
+    profiles: ["messaging", "catalog", "search", "analytics", "streaming", "full"]
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+    ports:
+      - "${KAFKA_PORT:-9092}:9092"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    networks:
+      - cinema-backend
+    restart: unless-stopped
+
+  # ===========================================
+  # MICROSERVICES
+  # ===========================================
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ../../services/auth
+      dockerfile: Dockerfile
+    container_name: cinema-auth-service
+    profiles: ["auth", "services", "full"]
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-cinema_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-cinema_password}
+      - POSTGRES_DB=auth_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_password}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-dev-secret-key-change-in-production-32-chars}
+      - JWT_ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+    ports:
+      - "${AUTH_SERVICE_PORT:-8001}:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - cinema-backend
+      - cinema-gateway
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # User Service
+  user-service:
+    build:
+      context: ../../services/user
+      dockerfile: Dockerfile
+    container_name: cinema-user-service
+    profiles: ["user", "services", "full"]
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-cinema_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-cinema_password}
+      - POSTGRES_DB=user_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_password}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-dev-secret-key-change-in-production-32-chars}
+    ports:
+      - "${USER_SERVICE_PORT:-8002}:8002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - cinema-backend
+      - cinema-gateway
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Catalog Service
+  catalog-service:
+    build:
+      context: ../../services/catalog
+      dockerfile: Dockerfile
+    container_name: cinema-catalog-service
+    profiles: ["catalog", "services", "full"]
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-cinema_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-cinema_password}
+      - POSTGRES_DB=catalog_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_password}
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - ENABLE_KAFKA=${ENABLE_KAFKA:-true}
+    ports:
+      - "${CATALOG_SERVICE_PORT:-8003}:8003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - cinema-backend
+      - cinema-gateway
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8003/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Search Service
+  search-service:
+    build:
+      context: ../../services/search
+      dockerfile: Dockerfile
+    container_name: cinema-search-service
+    profiles: ["search", "services", "full"]
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_password}
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - ENABLE_KAFKA=${ENABLE_KAFKA:-true}
+      - ENABLE_CACHE=true
+    ports:
+      - "${SEARCH_SERVICE_PORT:-8004}:8004"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - cinema-backend
+      - cinema-gateway
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8004/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Streaming Service
+  streaming-service:
+    build:
+      context: ../../services/streaming
+      dockerfile: Dockerfile
+    container_name: cinema-streaming-service
+    profiles: ["streaming", "services", "full"]
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-cinema_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-cinema_password}
+      - POSTGRES_DB=streaming_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_password}
+      - S3_ENDPOINT_URL=http://minio:9000
+      - S3_ACCESS_KEY=${MINIO_ROOT_USER:-minio}
+      - S3_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minio_dev_password}
+      - S3_BUCKET_NAME=videos
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - ENABLE_KAFKA=${ENABLE_KAFKA:-true}
+      - USER_SERVICE_URL=http://user-service:8002
+    ports:
+      - "${STREAMING_SERVICE_PORT:-8005}:8005"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - cinema-backend
+      - cinema-gateway
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8005/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Analytics Service
+  analytics-service:
+    build:
+      context: ../../services/analytics
+      dockerfile: Dockerfile
+    container_name: cinema-analytics-service
+    profiles: ["analytics", "services", "full"]
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - CLICKHOUSE_HOST=clickhouse
+      - CLICKHOUSE_PORT=9000
+      - CLICKHOUSE_HTTP_PORT=8123
+      - CLICKHOUSE_DATABASE=${CLICKHOUSE_DB:-analytics}
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - ENABLE_KAFKA=${ENABLE_KAFKA:-true}
+    ports:
+      - "${ANALYTICS_SERVICE_PORT:-8006}:8006"
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - cinema-backend
+      - cinema-gateway
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8006/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # ===========================================
+  # API GATEWAY
+  # ===========================================
+
+  # NGINX - Reverse Proxy & Load Balancer
+  nginx:
+    image: nginx:alpine
+    container_name: cinema-nginx
+    profiles: ["gateway", "full"]
+    ports:
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
+    volumes:
+      - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../nginx/conf.d:/etc/nginx/conf.d:ro
+    networks:
+      - cinema-gateway
+      - cinema-backend
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # ===========================================
+  # MONITORING & OBSERVABILITY
+  # ===========================================
+
+  # Prometheus - Metrics Collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: cinema-prometheus
+    profiles: ["monitoring", "full"]
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - cinema-backend
+      - cinema-monitoring
+    restart: unless-stopped
+
+  # Grafana - Metrics Visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: cinema-grafana
+    profiles: ["monitoring", "full"]
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    networks:
+      - cinema-monitoring
+    restart: unless-stopped
+
+  # Jaeger - Distributed Tracing
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: cinema-jaeger
+    profiles: ["monitoring", "full"]
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - "${JAEGER_UI_PORT:-16686}:16686"
+      - "6831:6831/udp"
+      - "14268:14268"
+      - "4317:4317"
+      - "4318:4318"
+    networks:
+      - cinema-backend
+      - cinema-monitoring
+    restart: unless-stopped
+
+# ===========================================
+# NETWORKS
+# ===========================================
+networks:
+  cinema-backend:
+    name: cinema-backend
+    driver: bridge
+  cinema-gateway:
+    name: cinema-gateway
+    driver: bridge
+  cinema-monitoring:
+    name: cinema-monitoring
+    driver: bridge
+
+# ===========================================
+# VOLUMES
+# ===========================================
+volumes:
+  postgres_data:
+    name: cinema-postgres-data
+  redis_data:
+    name: cinema-redis-data
+  elasticsearch_data:
+    name: cinema-elasticsearch-data
+  clickhouse_data:
+    name: cinema-clickhouse-data
+  minio_data:
+    name: cinema-minio-data
+  zookeeper_data:
+    name: cinema-zookeeper-data
+  zookeeper_logs:
+    name: cinema-zookeeper-logs
+  kafka_data:
+    name: cinema-kafka-data
+  prometheus_data:
+    name: cinema-prometheus-data
+  grafana_data:
+    name: cinema-grafana-data
