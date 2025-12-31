@@ -230,7 +230,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_password}
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-dev-secret-key-change-in-production-32-chars}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-L9tKYddD+gHEOkehkmtiY8R/vyAnBkmQ4hOu4puaPrQ=}
       - JWT_ALGORITHM=HS256
       - ACCESS_TOKEN_EXPIRE_MINUTES=30
     ports:
@@ -267,7 +267,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_password}
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-dev-secret-key-change-in-production-32-chars}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-L9tKYddD+gHEOkehkmtiY8R/vyAnBkmQ4hOu4puaPrQ=}
     ports:
       - "${USER_SERVICE_PORT:-8002}:8002"
     depends_on:

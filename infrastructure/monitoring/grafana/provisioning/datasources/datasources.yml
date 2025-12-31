@@ -21,7 +21,7 @@ datasources:
     database: "[logs-]YYYY.MM.DD"
     editable: false
     jsonData:
-      esVersion: "8.0.0"
+      esVersion: "8.11.0"
       timeField: "@timestamp"
       logMessageField: message
       logLevelField: level

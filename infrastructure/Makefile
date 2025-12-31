@@ -21,6 +21,14 @@ COMPOSE_PROD_FILE := docker/docker-compose.prod.yml
 DC := docker compose -f $(COMPOSE_FILE)
 DC_PROD := docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_PROD_FILE)
 
+# Load environment variables from .env if exists
+-include .env
+export
+
+# Default values (fallback if .env not loaded)
+REDIS_PASSWORD ?= redis_password
+MINIO_API_PORT ?= 9002
+
 # Colors for output
 GREEN := \033[0;32m
 YELLOW := \033[0;33m
@@ -186,11 +194,11 @@ health-check: ## Check health of running services
 	@echo ""
 	@echo "Infrastructure:"
 	@echo -n "  PostgreSQL:     "; docker exec cinema-postgres pg_isready -U cinema_user 2>/dev/null && echo "$(GREEN)OK$(NC)" || echo "$(YELLOW)NOT RUNNING$(NC)"
-	@echo -n "  Redis:          "; docker exec cinema-redis redis-cli -a redis_password ping 2>/dev/null | grep -q PONG && echo "$(GREEN)OK$(NC)" || echo "$(YELLOW)NOT RUNNING$(NC)"
+	@echo -n "  Redis:          "; docker exec cinema-redis redis-cli -a $(REDIS_PASSWORD) ping 2>/dev/null | grep -q PONG && echo "$(GREEN)OK$(NC)" || echo "$(YELLOW)NOT RUNNING$(NC)"
 	@echo -n "  Elasticsearch:  "; curl -sf http://localhost:9200/_cluster/health 2>/dev/null | grep -q "green\|yellow" && echo "$(GREEN)OK$(NC)" || echo "$(YELLOW)NOT RUNNING$(NC)"
 	@echo -n "  ClickHouse:     "; curl -sf http://localhost:8123/ping 2>/dev/null && echo "$(GREEN)OK$(NC)" || echo "$(YELLOW)NOT RUNNING$(NC)"
 	@echo -n "  Kafka:          "; docker exec cinema-kafka kafka-broker-api-versions --bootstrap-server localhost:9092 2>/dev/null | head -1 > /dev/null && echo "$(GREEN)OK$(NC)" || echo "$(YELLOW)NOT RUNNING$(NC)"
-	@echo -n "  MinIO:          "; curl -sf http://localhost:9002/minio/health/live 2>/dev/null && echo "$(GREEN)OK$(NC)" || echo "$(YELLOW)NOT RUNNING$(NC)"
+	@echo -n "  MinIO:          "; curl -sf "http://localhost:$(MINIO_API_PORT)/minio/health/live" 2>/dev/null && echo "$(GREEN)OK$(NC)" || echo "$(YELLOW)NOT RUNNING$(NC)"
 	@echo ""
 	@echo "Microservices:"
 	@echo -n "  Auth (8001):      "; curl -sf http://localhost:8001/health 2>/dev/null && echo "$(GREEN)OK$(NC)" || echo "$(YELLOW)NOT RUNNING$(NC)"
@@ -324,7 +332,7 @@ db-catalog: ## Connect to catalog database
 
 redis-cli: ## Open Redis CLI
 	@echo "$(GREEN)Connecting to Redis...$(NC)"
-	docker exec -it cinema-redis redis-cli -a redis_password
+	docker exec -it cinema-redis redis-cli -a $(REDIS_PASSWORD)
 
 # ===========================================
 # CLEANUP

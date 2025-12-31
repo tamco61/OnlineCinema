@@ -3,6 +3,10 @@
 
 set -e
 
+# Load environment variables
+REDIS_PASSWORD="${REDIS_PASSWORD:-redis_password}"
+MINIO_API_PORT="${MINIO_API_PORT:-9002}"
+
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 RED='\033[0;31m'
@@ -19,7 +23,7 @@ check_service() {
     local timeout=${3:-5}
 
     printf "  %-20s " "$name:"
-    if curl -sf --max-time $timeout "$url" > /dev/null 2>&1; then
+    if curl -sf --max-time "$timeout" "$url" > /dev/null 2>&1; then
         echo -e "${GREEN}OK${NC}"
         return 0
     else
@@ -34,7 +38,7 @@ check_container() {
     local cmd=$3
 
     printf "  %-20s " "$name:"
-    if docker exec "$container" $cmd > /dev/null 2>&1; then
+    if docker exec "$container" sh -c "$cmd" > /dev/null 2>&1; then
         echo -e "${GREEN}OK${NC}"
         return 0
     else
@@ -45,10 +49,10 @@ check_container() {
 
 echo "Infrastructure:"
 check_container "PostgreSQL" "cinema-postgres" "pg_isready -U cinema_user" || true
-check_container "Redis" "cinema-redis" "redis-cli -a redis_password ping" || true
+check_container "Redis" "cinema-redis" "redis-cli -a $REDIS_PASSWORD ping" || true
 check_service "Elasticsearch" "http://localhost:9200/_cluster/health" || true
 check_service "ClickHouse" "http://localhost:8123/ping" || true
-check_service "MinIO" "http://localhost:9002/minio/health/live" || true
+check_service "MinIO" "http://localhost:$MINIO_API_PORT/minio/health/live" || true
 
 echo ""
 echo "Microservices:"
