@@ -51,8 +51,8 @@ class JWTService:
             raise
 
     def create_refresh_token(
-        self,
-        user_id: UUID
+            self,
+            user_id: UUID
     ) -> tuple[str, str, int]:
         start_time = time.monotonic()
         try:

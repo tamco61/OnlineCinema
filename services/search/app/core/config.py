@@ -20,7 +20,6 @@ class Settings(BaseSettings):
     PORT: int = Field(default=8004)
     DEBUG: bool = False
 
-
     ELASTICSEARCH_HOSTS: list[str] = ["http://localhost:9200"]
     ELASTICSEARCH_INDEX: str = "movies"
     ELASTICSEARCH_TIMEOUT: int = 30

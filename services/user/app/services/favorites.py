@@ -18,7 +18,7 @@ class FavoritesService:
         self.db = db
 
     async def get_user_favorites(
-        self, profile_id: UUID, limit: int = 100
+            self, profile_id: UUID, limit: int = 100
     ) -> list[Favorite]:
         async with trace_span("favorites_get_user_favorites"):
             start = time.time()
@@ -39,7 +39,7 @@ class FavoritesService:
                 histogram("clickhouse_query_duration_seconds").record(time.time() - start)
 
     async def add_favorite(
-        self, profile_id: UUID, content_id: UUID, content_type: str
+            self, profile_id: UUID, content_id: UUID, content_type: str
     ) -> Favorite:
         async with trace_span("favorites_add_favorite"):
             start = time.time()
@@ -78,7 +78,7 @@ class FavoritesService:
                 histogram("clickhouse_query_duration_seconds").record(time.time() - start)
 
     async def remove_favorite(
-        self, profile_id: UUID, content_id: UUID
+            self, profile_id: UUID, content_id: UUID
     ) -> bool:
         async with trace_span("favorites_remove_favorite"):
             start = time.time()
@@ -112,7 +112,7 @@ class FavoritesService:
                 histogram("clickhouse_query_duration_seconds").record(time.time() - start)
 
     async def is_favorite(
-        self, profile_id: UUID, content_id: UUID
+            self, profile_id: UUID, content_id: UUID
     ) -> bool:
         async with trace_span("favorites_is_favorite"):
             start = time.time()
@@ -136,6 +136,6 @@ class FavoritesService:
 
 
 async def get_favorites_service(
-    db: AsyncSession = Depends(get_db),
+        db: AsyncSession = Depends(get_db),
 ) -> FavoritesService:
     return FavoritesService(db)

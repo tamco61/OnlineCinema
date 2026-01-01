@@ -1,6 +1,3 @@
-# remote module
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import logging
 
@@ -32,6 +29,7 @@ async def lifespan(app: FastAPI):
     await cache.close()
 
     logger.info(f"Shutdown {settings.SERVICE_NAME} v{settings.SERVICE_VERSION}")
+
 
 app = FastAPI(
     lifespan=lifespan
@@ -90,6 +88,7 @@ async def health():
         "redis": "ok" if redis_healthy else "error",
         "kafka": "enabled" if settings.ENABLE_KAFKA else "disabled"
     }
+
 
 if __name__ == "__main__":
     import uvicorn

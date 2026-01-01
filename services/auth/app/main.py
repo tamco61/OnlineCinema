@@ -33,6 +33,7 @@ async def lifespan(app: FastAPI):
     await close_db()
     print(f"Shutdown {settings.SERVICE_NAME} v{settings.SERVICE_VERSION}")
 
+
 app = FastAPI(
     lifespan=lifespan
 )
@@ -54,7 +55,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(api_router)
+app.include_router(router)
+
 
 @app.get("/health", tags=["Health"])
 async def health_check():
@@ -68,11 +70,12 @@ async def health_check():
 
 @app.get("/", tags=["Root"])
 async def root():
-    return{
+    return {
         "service": settings.SERVICE_NAME,
         "version": settings.SERVICE_VERSION,
         "docs": "/docs"
     }
+
 
 if __name__ == "__main__":
     import uvicorn

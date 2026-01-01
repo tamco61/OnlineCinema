@@ -27,7 +27,7 @@ def verify_access_token(token: str) -> UUID | None:
 
 
 async def get_current_user_id(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+        credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> UUID:
     token = credentials.credentials
     user_id = verify_access_token(token)

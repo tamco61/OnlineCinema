@@ -19,7 +19,7 @@ class HistoryService:
         self.db = db
 
     async def get_user_history(
-        self, profile_id: UUID, limit: int = 50
+            self, profile_id: UUID, limit: int = 50
     ) -> list[WatchHistory]:
         async with trace_span("history_get_user_history"):
             start = time.time()
@@ -40,7 +40,7 @@ class HistoryService:
                 histogram("clickhouse_query_duration_seconds").record(time.time() - start)
 
     async def update_progress(
-        self, profile_id: UUID, data: WatchHistoryUpdate
+            self, profile_id: UUID, data: WatchHistoryUpdate
     ) -> WatchHistory:
         async with trace_span("history_update_progress"):
             start = time.time()
@@ -85,7 +85,7 @@ class HistoryService:
                 histogram("clickhouse_query_duration_seconds").record(time.time() - start)
 
     async def get_content_progress(
-        self, profile_id: UUID, content_id: UUID
+            self, profile_id: UUID, content_id: UUID
     ) -> WatchHistory | None:
         async with trace_span("history_get_content_progress"):
             start = time.time()
@@ -108,5 +108,5 @@ class HistoryService:
                 histogram("clickhouse_query_duration_seconds").record(time.time() - start)
 
 
-async def get_history_service(db: AsyncSession=Depends(get_db)) -> HistoryService:
+async def get_history_service(db: AsyncSession = Depends(get_db)) -> HistoryService:
     return HistoryService(db)

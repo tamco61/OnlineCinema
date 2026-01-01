@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from services.auth.app.db.session import get_db
 from services.auth.app.services.jwt import get_jwt_service
 
-
 pwd_context = PasswordHash.recommended()
 security = HTTPBearer()
 
@@ -39,8 +38,8 @@ async def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depend
 
 
 async def get_current_user(
-    user_id: UUID = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db),
+        user_id: UUID = Depends(get_current_user_id),
+        db: AsyncSession = Depends(get_db),
 ):
     from app.db.models import User
     from sqlalchemy import select

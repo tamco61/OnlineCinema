@@ -1,3 +1,5 @@
+import logging
+import uuid
 import jwt
 from datetime import datetime
 from services.streaming.app.core.config import settings

@@ -83,11 +83,11 @@ class RedisService:
             )
 
     async def store_refresh_token(
-        self,
-        user_id: UUID,
-        token_id: str,
-        token_value: str,
-        ttl: Optional[timedelta] = None,
+            self,
+            user_id: UUID,
+            token_id: str,
+            token_value: str,
+            ttl: Optional[timedelta] = None,
     ) -> bool:
         start_time = time.monotonic()
         try:

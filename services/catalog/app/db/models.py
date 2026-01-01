@@ -268,6 +268,5 @@ class Movie(Base):
         cascade="all, delete-orphan",
     )
 
-
     def __repr__(self) -> str:
         return f"<Movie(id={self.id}, title='{self.title}', year={self.year})>"

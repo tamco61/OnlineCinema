@@ -28,6 +28,7 @@ async def lifespan(app: FastAPI):
     await close_db()
     logger.info(f"Shutdown {settings.SERVICE_NAME} v{settings.SERVICE_VERSION}")
 
+
 app = FastAPI(
     lifespan=lifespan
 )
@@ -63,4 +64,5 @@ async def health():
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run("app.main:app", host=settings.HOST, port=settings.PORT, reload=settings.RELOAD)

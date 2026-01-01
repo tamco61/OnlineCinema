@@ -11,8 +11,8 @@ router = APIRouter()
 
 @router.get("/me", response_model=UserProfileResponse, tags=["Users"])
 async def get_my_profile(
-    user_id: UUID = Depends(get_current_user_id),
-    user_service: UserService = Depends(get_user_service),
+        user_id: UUID = Depends(get_current_user_id),
+        user_service: UserService = Depends(get_user_service),
 ):
     profile = await user_service.get_or_create_profile(user_id)
     return UserProfileResponse.model_validate(profile)
@@ -20,9 +20,9 @@ async def get_my_profile(
 
 @router.patch("/me", response_model=UserProfileResponse, tags=["Users"])
 async def update_my_profile(
-    profile_data: UserProfileUpdate,
-    user_id: UUID = Depends(get_current_user_id),
-    user_service: UserService = Depends(get_user_service),
+        profile_data: UserProfileUpdate,
+        user_id: UUID = Depends(get_current_user_id),
+        user_service: UserService = Depends(get_user_service),
 ):
     profile = await user_service.update_profile(user_id, profile_data)
     return UserProfileResponse.model_validate(profile)

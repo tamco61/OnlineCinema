@@ -12,23 +12,22 @@ from services.analytics.app.schemas.analytics import (
     ViewingEventCreate
 )
 
-
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/analytics", tags=["Analytics"])
+router = APIRouter()
 
 
 def get_analytics_service(
-    ch_client: ClickHouseClient = Depends(get_clickhouse_client)
+        ch_client: ClickHouseClient = Depends(get_clickhouse_client)
 ) -> AnalyticsService:
     return AnalyticsService(ch_client)
 
 
 @router.get("/content/popular", response_model=PopularContentResponse)
 async def get_popular_content(
-    days: int = Query(7, ge=1, le=365, description="Number of days to analyze"),
-    limit: int = Query(10, ge=1, le=100, description="Maximum number of results"),
-    analytics_service: AnalyticsService = Depends(get_analytics_service)
+        days: int = Query(7, ge=1, le=365, description="Number of days to analyze"),
+        limit: int = Query(10, ge=1, le=100, description="Maximum number of results"),
+        analytics_service: AnalyticsService = Depends(get_analytics_service)
 ):
     try:
         return analytics_service.get_popular_content(days=days, limit=limit)
@@ -40,9 +39,9 @@ async def get_popular_content(
 
 @router.get("/user/{user_id}/stats", response_model=UserStatsResponse)
 async def get_user_stats(
-    user_id: str,
-    days: int = Query(30, ge=1, le=365, description="Number of days to analyze"),
-    analytics_service: AnalyticsService = Depends(get_analytics_service)
+        user_id: str,
+        days: int = Query(30, ge=1, le=365, description="Number of days to analyze"),
+        analytics_service: AnalyticsService = Depends(get_analytics_service)
 ):
     try:
         return analytics_service.get_user_stats(user_id=user_id, days=days)
@@ -54,8 +53,8 @@ async def get_user_stats(
 
 @router.get("/trends")
 async def get_viewing_trends(
-    days: int = Query(7, ge=1, le=90, description="Number of days to analyze"),
-    analytics_service: AnalyticsService = Depends(get_analytics_service)
+        days: int = Query(7, ge=1, le=90, description="Number of days to analyze"),
+        analytics_service: AnalyticsService = Depends(get_analytics_service)
 ):
     try:
         return analytics_service.get_viewing_trends(days=days)
@@ -67,8 +66,8 @@ async def get_viewing_trends(
 
 @router.get("/peak-hours")
 async def get_peak_hours(
-    days: int = Query(7, ge=1, le=90, description="Number of days to analyze"),
-    analytics_service: AnalyticsService = Depends(get_analytics_service)
+        days: int = Query(7, ge=1, le=90, description="Number of days to analyze"),
+        analytics_service: AnalyticsService = Depends(get_analytics_service)
 ):
     try:
         return analytics_service.get_peak_hours(days=days)
@@ -80,10 +79,9 @@ async def get_peak_hours(
 
 @router.post("/events")
 async def create_viewing_event(
-    event: ViewingEventCreate,
-    ch_client: ClickHouseClient = Depends(get_clickhouse_client)
+        event: ViewingEventCreate,
+        ch_client: ClickHouseClient = Depends(get_clickhouse_client)
 ):
-
     try:
         ch_client.insert_viewing_event(
             user_id=event.user_id,

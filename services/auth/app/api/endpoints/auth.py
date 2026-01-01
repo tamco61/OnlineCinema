@@ -12,7 +12,8 @@ from services.auth.app.schemas.auth import (
     TokenRefresh,
     TokenResponse,
     LogoutRequest,
-    MessageResponse, UserResponse
+    MessageResponse,
+    UserResponse
 )
 from services.auth.app.services.auth import get_auth_service
 
@@ -21,8 +22,8 @@ router = APIRouter()
 
 @router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 async def register(
-    user_data: UserRegister,
-    auth_service: AuthService = Depends(get_auth_service)
+        user_data: UserRegister,
+        auth_service: AuthService = Depends(get_auth_service)
 ) -> AuthResponse:
     return await auth_service.register(
         email=user_data.email,
@@ -32,9 +33,9 @@ async def register(
 
 @router.post("/login", response_model=AuthResponse)
 async def login(
-    request: Request,
-    credentials: UserLogin,
-    auth_service: AuthService = Depends(get_auth_service)
+        request: Request,
+        credentials: UserLogin,
+        auth_service: AuthService = Depends(get_auth_service)
 ) -> AuthResponse:
     return await auth_service.login(
         email=credentials.email,
@@ -44,8 +45,8 @@ async def login(
 
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_token(
-    token_data: TokenRefresh,
-    auth_service: AuthService = Depends(get_auth_service),
+        token_data: TokenRefresh,
+        auth_service: AuthService = Depends(get_auth_service),
 ) -> TokenResponse:
     return await auth_service.refresh_access_token(
         refresh_token=token_data.refresh_token,
@@ -54,8 +55,8 @@ async def refresh_token(
 
 @router.post("/logout", response_model=MessageResponse)
 async def logout(
-    logout_data: LogoutRequest,
-    auth_service: AuthService = Depends(get_auth_service),
+        logout_data: LogoutRequest,
+        auth_service: AuthService = Depends(get_auth_service),
 ) -> MessageResponse:
     success = await auth_service.logout(
         refresh_token=logout_data.refresh_token,
@@ -69,8 +70,8 @@ async def logout(
 
 @router.post("/logout-all", response_model=MessageResponse, dependencies=[Depends(get_current_user_id)])
 async def logout_all(
-    user_id: UUID = Depends(get_current_user_id),
-    auth_service: AuthService = Depends(get_auth_service),
+        user_id: UUID = Depends(get_current_user_id),
+        auth_service: AuthService = Depends(get_auth_service),
 ) -> MessageResponse:
     count = await auth_service.logout_all_sessions(user_id)
 
