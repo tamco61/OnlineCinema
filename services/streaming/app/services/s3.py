@@ -1,10 +1,12 @@
-import logging
+import time
 
 import boto3
 from botocore.client import Config
 from botocore.exceptions import ClientError
+from services.streaming.app.core.config import settings
+import logging
 
-from app.core.config import settings
+from shared.utils.telemetry.metrics import counter, histogram
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +16,7 @@ class S3Client:
         self.client = None
 
     def connect(self):
+        start_time = time.monotonic()
         try:
             self.client = boto3.client(
                 's3',
@@ -24,18 +27,23 @@ class S3Client:
                 use_ssl=settings.S3_USE_SSL,
                 config=Config(signature_version='s3v4')
             )
+            counter("s3_requests_total").add(1, {"operation": "connect"})
             logger.info("Connected to S3/MinIO")
         except Exception as e:
+            counter("s3_request_errors_total").add(1, {"operation": "connect"})
             logger.error(f"S3 connection error: {e}")
             raise
+        finally:
+            histogram("s3_request_duration_seconds").record(time.monotonic() - start_time, {"operation": "connect"})
 
     def generate_signed_url(self, object_key: str, expiration: int = None) -> str:
-        if not self.client:
-            raise RuntimeError("S3 client not initialized. Call connect() first.")
-
-        expiration = expiration or settings.SIGNED_URL_EXPIRATION
-
+        start_time = time.monotonic()
         try:
+            if not self.client:
+                raise RuntimeError("S3 client not initialized. Call connect() first.")
+
+            expiration = expiration or settings.SIGNED_URL_EXPIRATION
+
             url = self.client.generate_presigned_url(
                 'get_object',
                 Params={
@@ -45,27 +53,40 @@ class S3Client:
                 ExpiresIn=expiration
             )
 
+            counter("s3_requests_total").add(1, {"operation": "generate_signed_url"})
             logger.debug(f"Generated signed URL for: {object_key}")
             return url
 
         except ClientError as e:
+            counter("s3_request_errors_total").add(1, {"operation": "generate_signed_url"})
             logger.error(f"Error generating signed URL for {object_key}: {e}")
             raise
+        finally:
+            histogram("s3_request_duration_seconds").record(time.monotonic() - start_time, {"operation": "generate_signed_url"})
 
     def check_object_exists(self, object_key: str) -> bool:
-        if not self.client:
-            raise RuntimeError("S3 client not initialized. Call connect() first.")
-
+        start_time = time.monotonic()
         try:
+            if not self.client:
+                raise RuntimeError("S3 client not initialized. Call connect() first.")
+
             self.client.head_object(
                 Bucket=settings.S3_BUCKET_NAME,
                 Key=object_key
             )
+
+            counter("s3_requests_total").add(1, {"operation": "check_object_exists"})
             return True
+
         except ClientError as e:
             if e.response['Error']['Code'] == '404':
+                counter("s3_requests_total").add(1, {"operation": "check_object_exists"})
                 return False
+
+            counter("s3_request_errors_total").add(1, {"operation": "check_object_exists"})
             raise
+        finally:
+            histogram("s3_request_duration_seconds").record(time.monotonic() - start_time, {"operation": "check_object_exists"})
 
     def get_manifest_url(self, movie_id: str, manifest_type: str = "hls") -> str:
         if manifest_type == "hls":

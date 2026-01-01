@@ -1,0 +1,21 @@
+receivers:
+  otlp:
+    protocols:
+      http:
+      grpc:
+
+exporters:
+  prometheus:
+    endpoint: "0.0.0.0:9464"
+  tempo:
+    endpoint: "tempo:4317"
+    insecure: true
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      exporters: [prometheus]
+    traces:
+      receivers: [otlp]
+      exporters: [tempo]

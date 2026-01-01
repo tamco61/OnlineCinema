@@ -1,8 +1,7 @@
 import httpx
+from services.streaming.app.core.config import settings
+from services.streaming.app.services.redis import cache
 import logging
-
-from app.core.config import settings
-from app.services.redis import cache
 
 logger = logging.getLogger(__name__)
 
@@ -13,8 +12,8 @@ class UserServiceClient:
         self.timeout = settings.USER_SERVICE_TIMEOUT
 
     async def check_active_subscription(self, user_id: str, access_token: str) -> bool:
+        # Проверка кэша
         cached_subscription = await cache.get_cached_subscription(user_id)
-
         if cached_subscription is not None:
             return cached_subscription.get("is_active", False)
 
@@ -27,22 +26,17 @@ class UserServiceClient:
 
                 if response.status_code == 200:
                     data = response.json()
-
                     subscription_data = {
                         "is_active": data.get("is_active", False),
                         "plan_id": data.get("plan_id"),
                         "expires_at": data.get("expires_at")
                     }
-
                     await cache.cache_subscription(user_id, subscription_data)
-
                     return subscription_data["is_active"]
 
                 elif response.status_code == 404:
                     logger.warning(f"No subscription found for user: {user_id}")
-
                     await cache.cache_subscription(user_id, {"is_active": False})
-
                     return False
 
                 else:

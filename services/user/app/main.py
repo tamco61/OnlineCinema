@@ -4,10 +4,12 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.core.config import settings
-from app.db.session import init_db, close_db
-from app.api.router import router
-from app.services.redis import redis_service
+from services.user.app.core.config import settings
+from services.user.app.db.session import init_db, close_db
+from services.user.app.api.router import router
+from services.user.app.services.redis import redis_service
+from shared.utils.telemetry.metrics import init_metrics
+from shared.utils.telemetry.tracer import setup_telemetry
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +32,15 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     lifespan=lifespan
 )
+
+setup_telemetry(
+    app=app,
+    service_name=settings.SERVICE_NAME,
+    service_version=settings.SERVICE_VERSION,
+    environment=settings.ENVIRONMENT,
+    otlp_endpoint=settings.OTEL_COLLECTOR_ENDPOINT,
+)
+init_metrics()
 
 app.add_middleware(
     CORSMiddleware,

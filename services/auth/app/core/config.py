@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     SERVICE_NAME: str = Field(default="auth-service")
     SERVICE_VERSION: str = Field(default="1.0.0")
     ENVIRONMENT: str = Field(default="development")
+    OTEL_COLLECTOR_ENDPOINT: str = Field(default="http://otel-collector:4318")
 
     RELOAD: bool = Field(default=False, description="Auto-reload on code changes")
     WORKERS: int = Field(default=1, description="Number of worker processes")
