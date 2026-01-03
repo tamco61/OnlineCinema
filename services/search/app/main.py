@@ -5,12 +5,15 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.core.config import settings
-from app.services.elastic import es_client
-from app.services.redis import redis
-from app.services.search import get_search_service
-from app.services.kafka import MovieEventConsumer
-from app.api.router import router
+# local module
+from services.search.app.core.config import settings
+from services.search.app.services.elastic import es_client
+from services.search.app.services.redis import redis
+from services.search.app.services.search import get_search_service
+from services.search.app.services.kafka import MovieEventConsumer
+from services.search.app.api.endpoints.search import router
+from shared.utils.telemetry.metrics import init_metrics
+from shared.utils.telemetry.tracer import setup_telemetry
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +42,7 @@ async def lifespan(app: FastAPI):
         try:
             await consumer_task
         except asyncio.CancelledError:
-            logger.info("📭 Kafka consumer stopped")
+            logger.info("Kafka consumer stopped")
 
     await es_client.close()
     await redis.close()
@@ -50,6 +53,15 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     lifespan=lifespan
 )
+
+setup_telemetry(
+    app=app,
+    service_name=settings.SERVICE_NAME,
+    service_version=settings.SERVICE_VERSION,
+    environment=settings.ENVIRONMENT,
+    otlp_endpoint=settings.OTEL_COLLECTOR_ENDPOINT,
+)
+init_metrics()
 
 app.add_middleware(
     CORSMiddleware,

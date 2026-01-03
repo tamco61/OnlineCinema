@@ -1,0 +1,13 @@
+## Технологический стек
+- **Основной язык:** Python
+- **Фреймворки:** FastAPI (основные сервисы)
+- **Базы данных:** 
+  - PostgreSQL (основные данные)
+  - Redis (кэширование, сессии)
+  - ClickHouse (аналитика)
+  - Elasticsearch (поиск)
+- **Proxy:** NGINX 
+- **Хранилище:** MinIO/S3 (для видеофайлов)
+- **Очереди сообщений:** Kafka
+- **Контейнеризация:** Docker, Docker Compose
+- **Мониторинг:** Prometheus, Grafana, OpenTelemetry, Grafana Tempo

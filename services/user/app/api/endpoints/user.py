@@ -2,9 +2,9 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
-from app.core.security import get_current_user_id
-from app.schemas.user import UserProfileResponse, UserProfileUpdate
-from app.services.user import UserService, get_user_service
+from services.user.app.core.security import get_current_user_id
+from services.user.app.schemas.user import UserProfileResponse, UserProfileUpdate
+from services.user.app.services.user import UserService, get_user_service
 
 router = APIRouter()
 

@@ -5,8 +5,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import get_db
-from app.services.jwt import get_jwt_service
+from services.auth.app.db.session import get_db
+from services.auth.app.services.jwt import get_jwt_service
 
 pwd_context = PasswordHash.recommended()
 security = HTTPBearer()

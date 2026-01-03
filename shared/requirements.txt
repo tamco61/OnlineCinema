@@ -1,0 +1,23 @@
+# Cinema Common Library - Core Dependencies
+# Install: pip install -r requirements.txt
+
+# FastAPI
+fastapi>=0.104.0
+pydantic>=2.0.0
+starlette>=0.27.0
+
+# Prometheus Metrics
+prometheus-client>=0.19.0
+
+# OpenTelemetry (Distributed Tracing)
+opentelemetry-api>=1.21.0
+opentelemetry-sdk>=1.21.0
+opentelemetry-exporter-jaeger>=1.21.0
+opentelemetry-instrumentation-fastapi>=0.42b0
+opentelemetry-instrumentation-httpx>=0.42b0
+opentelemetry-instrumentation-redis>=0.42b0
+opentelemetry-instrumentation-sqlalchemy>=0.42b0
+opentelemetry-exporter-otlp-proto-http>=0.42b0
+
+# Optional: Redis (for rate limiting)
+# redis[hiredis]>=5.0.0

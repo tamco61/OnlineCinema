@@ -4,9 +4,9 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from app.services.clickhouse import get_clickhouse_client, ClickHouseClient
-from app.services.analytics import AnalyticsService
-from app.schemas.analytics import (
+from services.analytics.app.services.clickhouse import get_clickhouse_client, ClickHouseClient
+from services.analytics.app.services.analytics import AnalyticsService
+from services.analytics.app.schemas.analytics import (
     PopularContentResponse,
     UserStatsResponse,
     ViewingEventCreate

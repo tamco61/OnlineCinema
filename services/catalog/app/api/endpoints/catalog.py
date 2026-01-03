@@ -3,14 +3,14 @@ import uuid
 
 from fastapi import APIRouter, Depends, Query
 
-from app.schemas.movie import (
+from services.catalog.app.schemas.movie import (
     MovieCreate,
     MovieDetailResponse,
     MovieListResponse,
     MovieResponse,
     MovieUpdate,
 )
-from app.services.movie import MovieService, get_movie_service
+from services.catalog.app.services.movie import MovieService, get_movie_service
 
 router = APIRouter()
 

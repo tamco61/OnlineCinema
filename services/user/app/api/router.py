@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.endpoints import favorites, history, user
+from services.user.app.api.endpoints import favorites, history, user
 
 router = APIRouter()
 
