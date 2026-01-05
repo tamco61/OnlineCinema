@@ -1,0 +1,96 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'cinema-platform'
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+rule_files: []
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # NGINX - requires nginx-prometheus-exporter container
+  # stub_status provides plain text, not Prometheus format
+  # - job_name: 'nginx'
+  #   static_configs:
+  #     - targets: ['nginx-exporter:9113']
+  #   scrape_interval: 30s
+
+  # Auth Service
+  - job_name: 'auth-service'
+    static_configs:
+      - targets: ['auth-service:8001']
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # User Service
+  - job_name: 'user-service'
+    static_configs:
+      - targets: ['user-service:8002']
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # Catalog Service
+  - job_name: 'catalog-service'
+    static_configs:
+      - targets: ['catalog-service:8003']
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # Search Service
+  - job_name: 'search-service'
+    static_configs:
+      - targets: ['search-service:8004']
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # Streaming Service
+  - job_name: 'streaming-service'
+    static_configs:
+      - targets: ['streaming-service:8005']
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # Analytics Service
+  - job_name: 'analytics-service'
+    static_configs:
+      - targets: ['analytics-service:8006']
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # PostgreSQL - requires postgres_exporter container
+  # - job_name: 'postgres'
+  #   static_configs:
+  #     - targets: ['postgres-exporter:9187']
+  #   scrape_interval: 60s
+
+  # Redis - requires redis_exporter container
+  # - job_name: 'redis'
+  #   static_configs:
+  #     - targets: ['redis-exporter:9121']
+  #   scrape_interval: 30s
+
+  # Elasticsearch - requires elasticsearch-exporter or X-Pack
+  # - job_name: 'elasticsearch'
+  #   static_configs:
+  #     - targets: ['elasticsearch-exporter:9114']
+  #   scrape_interval: 60s
+
+  # Kafka - requires kafka_exporter container
+  # - job_name: 'kafka'
+  #   static_configs:
+  #     - targets: ['kafka-exporter:9308']
+  #   scrape_interval: 30s
+
+  # Docker containers (via cAdvisor if deployed)
+  # - job_name: 'cadvisor'
+  #   static_configs:
+  #     - targets: ['cadvisor:8080']
