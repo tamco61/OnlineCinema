@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     SERVICE_NAME: str = Field(default="user-service")
     SERVICE_VERSION: str = Field(default="1.0.0")
     ENVIRONMENT: str = Field(default="development")
+    OTEL_COLLECTOR_ENDPOINT: str = Field(default="http://otel-collector:4318")
     HOST: str = Field(default="0.0.0.0")
     PORT: int = Field(default=8002)
     RELOAD: bool = Field(default=False)

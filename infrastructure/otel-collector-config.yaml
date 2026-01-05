@@ -7,10 +7,9 @@ receivers:
 exporters:
   prometheus:
     endpoint: "0.0.0.0:9464"
-  otlp/tempo:
+  tempo:
     endpoint: "tempo:4317"
-    tls:
-      insecure: true
+    insecure: true
 
 service:
   pipelines:
@@ -19,4 +18,4 @@ service:
       exporters: [prometheus]
     traces:
       receivers: [otlp]
-      exporters: [otlp/tempo]
+      exporters: [tempo]

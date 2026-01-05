@@ -2,10 +2,10 @@ from uuid import UUID
 
 from fastapi import APIRouter, Request, status, HTTPException, Depends
 
-from app.core.security import get_current_user_id, get_current_user
-from app.services.auth import AuthService
-from app.db.models import User
-from app.schemas.auth import (
+from services.auth.app.core.security import get_current_user_id, get_current_user
+from services.auth.app.services.auth import AuthService
+from services.auth.app.db.models import User
+from services.auth.app.schemas.auth import (
     AuthResponse,
     UserLogin,
     UserRegister,
@@ -15,7 +15,7 @@ from app.schemas.auth import (
     MessageResponse,
     UserResponse
 )
-from app.services.auth import get_auth_service
+from services.auth.app.services.auth import get_auth_service
 
 router = APIRouter()
 

@@ -1,3 +1,4 @@
+# tempo.yaml
 server:
   http_listen_port: 3200
 
