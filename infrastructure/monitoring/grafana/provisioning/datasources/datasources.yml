@@ -8,6 +8,12 @@ datasources:
     isDefault: true
     editable: false
 
+  - name: Tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    editable: false
+
   - name: Jaeger
     type: jaeger
     access: proxy

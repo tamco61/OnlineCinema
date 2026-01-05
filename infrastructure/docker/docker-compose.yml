@@ -233,6 +233,8 @@ services:
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-L9tKYddD+gHEOkehkmtiY8R/vyAnBkmQ4hOu4puaPrQ=}
       - JWT_ALGORITHM=HS256
       - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_SERVICE_NAME=auth-service
     ports:
       - "${AUTH_SERVICE_PORT:-8001}:8001"
     depends_on:
@@ -268,6 +270,8 @@ services:
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_password}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-L9tKYddD+gHEOkehkmtiY8R/vyAnBkmQ4hOu4puaPrQ=}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_SERVICE_NAME=user-service
     ports:
       - "${USER_SERVICE_PORT:-8002}:8002"
     depends_on:
@@ -304,6 +308,8 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_password}
       - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - ENABLE_KAFKA=${ENABLE_KAFKA:-true}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_SERVICE_NAME=catalog-service
     ports:
       - "${CATALOG_SERVICE_PORT:-8003}:8003"
     depends_on:
@@ -339,6 +345,8 @@ services:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - ENABLE_KAFKA=${ENABLE_KAFKA:-true}
       - ENABLE_CACHE=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_SERVICE_NAME=search-service
     ports:
       - "${SEARCH_SERVICE_PORT:-8004}:8004"
     depends_on:
@@ -382,6 +390,8 @@ services:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - ENABLE_KAFKA=${ENABLE_KAFKA:-true}
       - USER_SERVICE_URL=http://user-service:8002
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_SERVICE_NAME=streaming-service
     ports:
       - "${STREAMING_SERVICE_PORT:-8005}:8005"
     depends_on:
@@ -416,6 +426,8 @@ services:
       - CLICKHOUSE_DATABASE=${CLICKHOUSE_DB:-analytics}
       - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - ENABLE_KAFKA=${ENABLE_KAFKA:-true}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_SERVICE_NAME=analytics-service
     ports:
       - "${ANALYTICS_SERVICE_PORT:-8006}:8006"
     depends_on:
@@ -501,7 +513,43 @@ services:
       - cinema-monitoring
     restart: unless-stopped
 
-  # Jaeger - Distributed Tracing
+  # OpenTelemetry Collector - Centralized telemetry collection
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: cinema-otel-collector
+    profiles: ["monitoring", "full"]
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ../otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    ports:
+      - "${OTEL_GRPC_PORT:-4317}:4317"    # OTLP gRPC receiver
+      - "${OTEL_HTTP_PORT:-4318}:4318"    # OTLP HTTP receiver
+      - "${OTEL_METRICS_PORT:-9464}:9464" # Prometheus metrics exporter
+    depends_on:
+      - tempo
+    networks:
+      - cinema-backend
+      - cinema-monitoring
+    restart: unless-stopped
+
+  # Grafana Tempo - Distributed Tracing Backend
+  tempo:
+    image: grafana/tempo:latest
+    container_name: cinema-tempo
+    profiles: ["monitoring", "full"]
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ../tempo.yaml:/etc/tempo.yaml:ro
+      - tempo_data:/var/tempo
+    ports:
+      - "${TEMPO_HTTP_PORT:-3200}:3200"   # Tempo HTTP API
+      - "${TEMPO_GRPC_PORT:-9095}:9095"   # Tempo gRPC
+    networks:
+      - cinema-backend
+      - cinema-monitoring
+    restart: unless-stopped
+
+  # Jaeger - Distributed Tracing (legacy, can be removed if using Tempo)
   jaeger:
     image: jaegertracing/all-in-one:latest
     container_name: cinema-jaeger
@@ -512,8 +560,6 @@ services:
       - "${JAEGER_UI_PORT:-16686}:16686"
       - "6831:6831/udp"
       - "14268:14268"
-      - "4317:4317"
-      - "4318:4318"
     networks:
       - cinema-backend
       - cinema-monitoring
@@ -557,3 +603,5 @@ volumes:
     name: cinema-prometheus-data
   grafana_data:
     name: cinema-grafana-data
+  tempo_data:
+    name: cinema-tempo-data
