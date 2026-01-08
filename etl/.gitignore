@@ -1,0 +1,63 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Airflow
+airflow/logs/*
+airflow/plugins/*
+!airflow/logs/.gitkeep
+!airflow/plugins/.gitkeep
+airflow/*.db
+airflow/*.pid
+airflow/*.cfg
+airflow/*.err
+airflow/*.log
+
+# Volumes
+volumes/etl-airflow-postgres-data/*
+volumes/etl-redis-data/*
+volumes/thumbnail-temp/*
+volumes/video-temp/*
+!volumes/etl-airflow-postgres-data/.gitkeep
+!volumes/etl-redis-data/.gitkeep
+!volumes/thumbnail-temp/.gitkeep
+!volumes/video-temp/.gitkeep
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+/tmp/
+*.tmp

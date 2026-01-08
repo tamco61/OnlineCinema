@@ -42,6 +42,7 @@ services:
       retries: 5
     networks:
       - cinema-backend
+      - cinema-network
     restart: unless-stopped
 
   # Redis - Caching & Sessions
@@ -578,6 +579,8 @@ networks:
   cinema-monitoring:
     name: cinema-monitoring
     driver: bridge
+  cinema-network:
+    external: true
 
 # ===========================================
 # VOLUMES
