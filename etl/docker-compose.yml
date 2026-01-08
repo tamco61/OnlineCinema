@@ -1,0 +1,176 @@
+services:
+
+
+  etl-airflow-postgres:
+    image: postgres:15
+    container_name: etl-airflow-postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - etl-airflow-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - etl-network
+    profiles:
+      - airflow
+      - celery
+      - all
+
+
+  etl-redis:
+    image: redis:7-alpine
+    container_name: etl-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - etl-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - etl-network
+    profiles:
+      - airflow
+      - celery
+      - all
+
+
+  etl-airflow-init:
+    build: .
+    container_name: etl-airflow-init
+    command:
+      - bash
+      - -c
+      - |
+        airflow db migrate && \
+        airflow users create \
+        --username admin \
+        --password admin \
+        --firstname Admin \
+        --lastname User \
+        --role Admin \
+        --email admin@cinema.com \
+        || true
+    env_file:
+      - .env
+    depends_on:
+      etl-airflow-postgres:
+        condition: service_healthy
+      etl-redis:
+        condition: service_healthy
+    volumes:
+      - ./airflow/logs:/app/airflow/logs
+      - ./airflow/dags:/app/airflow/dags
+      - ./airflow/plugins:/app/airflow/plugins
+    restart: "no"
+    networks:
+      - etl-network
+    profiles:
+      - airflow
+      - celery
+      - all
+
+
+  etl-airflow-webserver:
+    build: .
+    container_name: etl-airflow-webserver
+    command: airflow webserver
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    depends_on:
+      etl-airflow-postgres:
+        condition: service_healthy
+      etl-redis:
+        condition: service_healthy
+      etl-airflow-init:
+        condition: service_completed_successfully
+    volumes:
+      - ./airflow/dags:/app/airflow/dags
+      - ./airflow/logs:/app/airflow/logs
+      - ./airflow/plugins:/app/airflow/plugins
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - etl-network
+      - cinema-network
+    profiles:
+      - airflow
+      - all
+
+
+  etl-airflow-scheduler:
+    build: .
+    container_name: etl-airflow-scheduler
+    command: airflow scheduler
+    env_file:
+      - .env
+    depends_on:
+      etl-airflow-postgres:
+        condition: service_healthy
+      etl-redis:
+        condition: service_healthy
+      etl-airflow-init:
+        condition: service_completed_successfully
+      etl-airflow-webserver:
+        condition: service_started
+    volumes:
+      - ./airflow/dags:/app/airflow/dags
+      - ./airflow/logs:/app/airflow/logs
+      - ./airflow/plugins:/app/airflow/plugins
+    networks:
+      - etl-network
+      - cinema-network
+    profiles:
+      - airflow
+      - all
+
+
+  etl-airflow-worker:
+    build: .
+    container_name: etl-airflow-worker
+    command: ["airflow", "celery", "worker", "--celery-hostname", "airflow-worker@%h"]
+    env_file:
+      - .env
+    depends_on:
+      etl-airflow-postgres:
+        condition: service_healthy
+      etl-redis:
+        condition: service_healthy
+      etl-airflow-init:
+        condition: service_completed_successfully
+      etl-airflow-scheduler:
+        condition: service_started
+    volumes:
+      - ./airflow/dags:/app/airflow/dags
+      - ./airflow/logs:/app/airflow/logs
+      - ./airflow/plugins:/app/airflow/plugins
+    networks:
+      - etl-network
+      - cinema-network
+    profiles:
+      - airflow
+      - all
+
+
+volumes:
+  etl-airflow-postgres-data:
+  etl-redis-data:
+
+
+networks:
+  etl-network:
+    driver: bridge
+  cinema-network:
+    external: true
