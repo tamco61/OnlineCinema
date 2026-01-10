@@ -16,6 +16,69 @@
 - **Очереди сообщений:** Kafka
 - **Контейнеризация:** Docker, Docker Compose
 - **Мониторинг:** Prometheus, Grafana, OpenTelemetry, Grafana Tempo
+## Технологический стек
+```mermaid
+flowchart TD
+    CLIENT[Клиент]
+    GW[API Gateway<br>NGINX]
+
+    CLIENT --> GW
+    GW --> MS
+
+    subgraph MS [Микросервисы]
+        AUTH[Auth Service]
+        USER[User Service]
+        CAT[Catalog Service]
+        SEARCH[Search Service]
+        STREAM[Streaming Service]
+        ANALYTICS[Analytics Service]
+    end
+
+    subgraph DB [Базы данных]
+        PG[(PostgreSQL)]
+        RED[(Redis)]
+        ES[(Elasticsearch)]
+        CH[(ClickHouse)]
+    end
+
+    subgraph STORAGE [Хранилище]
+        MINIO[(MinIO/S3)]
+    end
+
+    AUTH --> PG
+    AUTH --> RED
+    USER --> PG
+    CAT --> PG
+    CAT --> ES
+    SEARCH --> ES
+    STREAM --> MINIO
+    ANALYTICS --> CH
+
+    subgraph ETL[ETL]
+        AF[Airflow]
+        CELERY[Celery]
+    end
+
+    CELERY --> PG
+    CELERY --> MINIO
+    AF --> RED
+    CELERY --> ES
+    CELERY <--> AF
+
+    subgraph MON [Мониторинг]
+        PROM[Prometheus]
+        GRAFANA[Grafana]
+    end
+
+    subgraph MESSAGING [Мессенджинг]
+        KAFKA[Kafka]
+    end
+
+    MS .-> KAFKA
+    
+    MS --> PROM
+    PROM --> GRAFANA
+```
 
 ## Быстрый старт
 
