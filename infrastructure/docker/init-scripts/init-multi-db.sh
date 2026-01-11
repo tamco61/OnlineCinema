@@ -34,4 +34,8 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 EOSQL
 
+echo "Creating videos table..."
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "catalog_db" \
+  -f /docker-entrypoint-initdb.d/001_create_videos_table.sql
+
 echo "All databases created successfully!"
