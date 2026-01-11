@@ -32,6 +32,8 @@ MANIFEST
 *.manifest
 *.spec
 
+todo.txt
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
@@ -137,6 +139,7 @@ celerybeat.pid
 # Environments
 .env
 .envrc
+!etl/.env
 .venv
 env/
 venv/

@@ -164,6 +164,46 @@ services:
       - all
 
 
+  etl-celery-worker-transcoding:
+    build: .
+    container_name: etl-celery-worker-transcoding
+    command: celery -A worker worker -l info -Q transcoding -c 2
+    env_file:
+      - .env
+    depends_on:
+      etl-redis:
+        condition: service_healthy
+    volumes:
+      - ./celery-workers:/app/celery-workers
+      - ./volumes/video-temp:/tmp/videos
+    working_dir: /app/celery-workers
+    networks:
+      - etl-network
+    profiles:
+      - celery
+      - all
+
+
+  etl-celery-worker-thumbnails:
+    build: .
+    container_name: etl-celery-worker-thumbnails
+    command: celery -A worker worker -l info -Q thumbnails -c 2
+    env_file:
+      - .env
+    depends_on:
+      etl-redis:
+        condition: service_healthy
+    volumes:
+      - ./celery-workers:/app/celery-workers
+      - ./volumes/thumbnail-temp:/tmp/thumbnails
+    working_dir: /app/celery-workers
+    networks:
+      - etl-network
+    profiles:
+      - celery
+      - all
+
+
 volumes:
   etl-airflow-postgres-data:
   etl-redis-data:
