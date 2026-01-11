@@ -150,6 +150,7 @@ docker compose --profile core --profile messaging --profile services up -d
 | MinIO Console | 9001 |
 | Elasticsearch | 9200 |
 | ClickHouse HTTP | 8123 |
+| Airflow Dashboard (etl) | 8080 |
 
 ### Остановка
 
